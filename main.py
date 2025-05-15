@@ -17,13 +17,13 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 def home():
     return "Server is live!"
 
-    @app.route("/handle-call", methods=["POST"])
-    def handle_call():
-        response = VoiceResponse()
-        dial = Dial(action="/handle-call-result", timeout=20)
-        dial.number(+16044423722)
-        response.append(dial)
-        return Response(str(response), mimetype="text/xml")
+@app.route("/handle-call", methods=["POST"])
+def handle_call():
+    response = VoiceResponse()
+    dial = Dial(action="/handle-call-result", timeout=20)
+    dial.number("+16044423722")  # Number needs to be a string
+    response.append(dial)
+    return Response(str(response), mimetype="text/xml")
 
 
 @app.route("/handle-call-result", methods=["POST"])
