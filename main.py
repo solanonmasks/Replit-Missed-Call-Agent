@@ -206,14 +206,21 @@ def handle_no_answer():
         print(f"Forward Number (Plumber): {FORWARD_TO_NUMBER}")
         response.say("Sorry, we couldn't reach our plumber. We'll send you a text message shortly to collect more information.")
         # Send initial SMS
-        try:
-            message = client.messages.create(
-                body="Hi! This is FlowRite Plumbing. Could you please tell us your name?",
-                from_=TWILIO_PHONE_NUMBER,
-                to=from_number
-            )
-            print(f"SMS sent successfully with SID: {message.sid}")
-            customer_states[from_number] = {"stage": "waiting_for_name"}
+        # Check if number is from supported regions (US/Canada)
+        supported_regions = ["+1"]  # Add more country codes as needed
+        if any(from_number.startswith(region) for region in supported_regions):
+            try:
+                message = client.messages.create(
+                    body="Hi! This is FlowRite Plumbing. Could you please tell us your name?",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=from_number
+                )
+                print(f"SMS sent successfully with SID: {message.sid}")
+                customer_states[from_number] = {"stage": "waiting_for_name"}
+            except Exception as e:
+                print(f"Error sending SMS: {str(e)}")
+        else:
+            print(f"SMS not attempted for unsupported region: {from_number}")
         except Exception as e:
             print(f"Error sending SMS: {str(e)}")
             print(f"TWILIO_PHONE_NUMBER: {TWILIO_PHONE_NUMBER}")
