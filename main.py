@@ -30,10 +30,25 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 customer_states = {}  # Store customer interaction states
 
+@app.route("/test-sms")
+def test_sms():
+    try:
+        message = client.messages.create(
+            body="Test message from your plumbing service",
+            from_=TWILIO_PHONE_NUMBER,
+            to=FORWARD_TO_NUMBER
+        )
+        return f"Test SMS sent! Message SID: {message.sid}"
+    except Exception as e:
+        return f"Error sending SMS: {str(e)}"
+
 @app.route("/sms", methods=["POST"])
 def handle_sms():
-    print("Incoming SMS webhook received")
-    print("Request form data:", request.form)
+    print("\n=== SMS Webhook Debug ===")
+    print("Full request data:", request.get_data(as_text=True))
+    print("Headers:", dict(request.headers))
+    print("Form data:", dict(request.form))
+    print("========================\n")
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
 
