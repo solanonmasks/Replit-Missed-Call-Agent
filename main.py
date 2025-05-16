@@ -268,21 +268,27 @@ def handle_sms():
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
             state["stage"] = "chatting"
-
-            # Send info to plumber
-            plumber_message = client.messages.create(
-                body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
-                from_=TWILIO_PHONE_NUMBER,
-                to=FORWARD_TO_NUMBER
-            )
-
-            # Get initial AI response to the issue
+            
+            # First get AI response
             initial_advice = get_gpt_advice(message_body, state)
+            
+            # Construct customer response
             response = (
-                f"Thanks {state['name']}, we've received your request and our plumber will contact you soon.\n\n"
+                f"Thanks {state['name']}, I understand you're having an issue with {state['issue']}. "
+                f"Our plumber will contact you soon.\n\n"
                 f"{initial_advice}\n\n"
-                "Feel free to ask any other questions while you wait! Type STOP anytime to end the conversation."
+                "Feel free to ask any questions while you wait! Type STOP anytime to end the conversation."
             )
+
+            # Then notify plumber
+            try:
+                plumber_message = client.messages.create(
+                    body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=FORWARD_TO_NUMBER
+                )
+            except Exception as e:
+                print(f"Error notifying plumber: {str(e)}")
 
         elif state["stage"] == "chatting":
             advice = get_gpt_advice(message_body, state)
