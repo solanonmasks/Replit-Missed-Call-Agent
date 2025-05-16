@@ -6,16 +6,17 @@ import openai
 
 app = Flask(__name__)
 
-# Multi-plumber configuration
-PLUMBER_CONFIG = {
+# Multi-business configuration
+BUSINESS_CONFIG = {
     "+17786535845": {  # Twilio number as key
         "forward_to": "+16044423722",
         "business_name": "FlowRite Plumbing",
+        "business_type": "plumber",  # plumber, electrician, handyman, etc.
         "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID"),
         "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN"),
         "openai_key": os.environ.get("OPENAI_API_KEY")
     }
-    # Add more plumbers here
+    # Add more businesses here
 }
 
 # Default credentials for testing
@@ -72,7 +73,7 @@ def get_gpt_advice(message, state=None):
 
         # Build conversation history with enhanced context and capabilities
         messages = [
-            {"role": "system", "content": f"""You are a friendly, experienced plumber having a natural conversation. Speak casually but professionally, like you're talking to a neighbor. Your key traits:
+            {"role": "system", "content": f"""You are a friendly, experienced {BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]['business_type']} having a natural conversation. Speak casually but professionally, like you're talking to a neighbor. Your key traits:
 
             1. Never ask about information already provided
             2. Focus on being helpful, not gathering more details
