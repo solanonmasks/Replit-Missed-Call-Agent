@@ -22,8 +22,9 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_
     print(f"PHONE_NUMBER: {'Present' if TWILIO_PHONE_NUMBER else 'Missing'}")
     print(f"FORWARD_NUMBER: {'Present' if FORWARD_TO_NUMBER else 'Missing'}")
 
-# Initialize OpenAI client
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+# Initialize OpenAI client with API key from environment
+openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+print(f"OpenAI client initialized with API key starting with: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No OpenAI API key found!")
 
 def format_phone_number(number):
     if not number:
@@ -41,7 +42,8 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 def get_gpt_advice(issue):
     try:
         print(f"Calling OpenAI API with issue: {issue}")
-        response = client.chat.completions.create(
+        print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
+        response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful plumbing assistant. Provide brief, practical advice for common plumbing issues."},
