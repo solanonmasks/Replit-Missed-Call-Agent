@@ -44,13 +44,20 @@ def test_sms():
 
 @app.route("/sms", methods=["POST"])
 def handle_sms():
-    print("\n=== SMS Webhook Debug ===")
-    print("Full request data:", request.get_data(as_text=True))
-    print("Headers:", dict(request.headers))
-    print("Form data:", dict(request.form))
-    print("========================\n")
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
+    
+    # Send message directly to plumber
+    try:
+        message = client.messages.create(
+            body=f"New message from {from_number}:\n{message_body}",
+            from_=TWILIO_PHONE_NUMBER,
+            to=FORWARD_TO_NUMBER
+        )
+        return Response("", status=200)
+    except Exception as e:
+        print(f"Error sending SMS: {str(e)}")
+        return Response("Error", status=500)
 
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
