@@ -55,7 +55,8 @@ def handle_call():
             raise ValueError(f"Invalid forward number format: {FORWARD_TO_NUMBER}")
             
         response = VoiceResponse()
-        dial = Dial(action="/handle-call-result", timeout=20)
+        response.say("Please hold while we connect your call.")
+        dial = Dial(action="/handle-call-result", timeout=30, hangupOnStar=True)
         dial.number(FORWARD_TO_NUMBER)
         response.append(dial)
         
