@@ -42,15 +42,17 @@ def get_gpt_advice(issue):
     try:
         print(f"\n=== Starting GPT Request ===")
         print(f"Issue: {issue}")
-        print(f"API Key status: {'Present' if OPENAI_API_KEY else 'Missing'}")
-        print(f"API Key length: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
-
+        
+        # Validate API key
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
-
-        # Validate API key format
-        if not OPENAI_API_KEY.startswith('sk-'):
-            raise ValueError("Invalid API key format - should start with 'sk-'")
+        
+        print(f"API Key first 5 chars: {OPENAI_API_KEY[:5]}")
+        print(f"API Key length: {len(OPENAI_API_KEY)}")
+        
+        # Standard OpenAI key format check
+        if not OPENAI_API_KEY.startswith('sk-') or len(OPENAI_API_KEY) < 40:
+            raise ValueError(f"Invalid API key format. Key should start with 'sk-' and be at least 40 characters.")
 
         print(f"Calling OpenAI API with issue: {issue}")
         print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
