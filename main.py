@@ -175,7 +175,72 @@ customer_states = {}  # Store customer interaction states
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Server is live!"
+    return """
+    <html>
+    <head>
+        <title>Plumbing Business Management - Subscribe</title>
+        <script src="https://js.stripe.com/v3/"></script>
+        <style>
+            body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
+            .form-group { margin: 20px 0; }
+            input { width: 100%; padding: 8px; margin: 8px 0; }
+            button { background: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+            .error { color: red; }
+        </style>
+    </head>
+    <body>
+        <h1>Start Your 30-Day Free Trial</h1>
+        <p>$55/month after trial - Cancel anytime</p>
+        
+        <form id="payment-form">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Card Information</label>
+                <div id="card-element"></div>
+                <div id="card-errors" class="error"></div>
+            </div>
+            
+            <button type="submit">Start Free Trial</button>
+        </form>
+
+        <script>
+            const stripe = Stripe('{os.environ.get("STRIPE_PUBLISHABLE_KEY")}');
+            const elements = stripe.elements();
+            const card = elements.create('card');
+            card.mount('#card-element');
+
+            const form = document.getElementById('payment-form');
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const email = document.getElementById('email').value;
+
+                const {token, error} = await stripe.createToken(card);
+                if (error) {
+                    document.getElementById('card-errors').textContent = error.message;
+                    return;
+                }
+
+                const response = await fetch('/create-subscription', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `stripeToken=${token.id}&email=${email}`
+                });
+
+                const result = await response.json();
+                if (result.error) {
+                    document.getElementById('card-errors').textContent = result.error;
+                } else {
+                    window.location.href = '/success';
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
 
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
