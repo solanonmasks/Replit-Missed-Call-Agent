@@ -64,6 +64,8 @@ def handle_no_answer():
     
     response = VoiceResponse()
     if dial_status in ["no-answer", "busy", "failed"]:
+        print(f"Call not answered. Status: {dial_status}")
+        print(f"Attempting to send SMS to: {from_number} from {TWILIO_PHONE_NUMBER}")
         response.say("Sorry, we couldn't reach our plumber. We'll send you a text message shortly to collect more information.")
         # Send initial SMS
         try:
@@ -72,9 +74,12 @@ def handle_no_answer():
                 from_=TWILIO_PHONE_NUMBER,
                 to=from_number
             )
+            print(f"SMS sent successfully with SID: {message.sid}")
             customer_states[from_number] = {"stage": "waiting_for_name"}
         except Exception as e:
             print(f"Error sending SMS: {str(e)}")
+            print(f"TWILIO_PHONE_NUMBER: {TWILIO_PHONE_NUMBER}")
+            print(f"Customer number: {from_number}")
     
     response.hangup()
     return str(response)
