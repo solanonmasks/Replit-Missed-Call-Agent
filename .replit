@@ -17,3 +17,15 @@ deploymentTarget = "cloudrun"
 [[ports]]
 localPort = 81
 externalPort = 80
+
+[workflows]
+runButton = "Run Server"
+
+[[workflows.workflow]]
+name = "Run Server"
+author = 42753220
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"

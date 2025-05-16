@@ -11,7 +11,34 @@ TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
 FORWARD_TO_NUMBER = os.environ.get("FORWARD_TO_NUMBER")
 
-client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+def format_phone_number(number):
+    if not number:
+        return None
+    # Remove any spaces or special characters
+    cleaned = ''.join(filter(str.isdigit, number))
+    # Add + and country code 1 if not present
+    if not cleaned.startswith('1'):
+        cleaned = '1' + cleaned
+    return '+' + cleaned
+
+# Format phone numbers
+TWILIO_PHONE_NUMBER = format_phone_number(TWILIO_PHONE_NUMBER)
+FORWARD_TO_NUMBER = format_phone_number(FORWARD_TO_NUMBER)
+
+# Verify Twilio credentials are present
+if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_TO_NUMBER]):
+    print("ERROR: Missing Twilio credentials!")
+    print(f"TWILIO_ACCOUNT_SID present: {bool(TWILIO_ACCOUNT_SID)}")
+    print(f"TWILIO_AUTH_TOKEN present: {bool(TWILIO_AUTH_TOKEN)}")
+    print(f"TWILIO_PHONE_NUMBER: {TWILIO_PHONE_NUMBER}")
+    print(f"FORWARD_TO_NUMBER: {FORWARD_TO_NUMBER}")
+
+# Test Twilio client
+try:
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    print("Successfully initialized Twilio client")
+except Exception as e:
+    print(f"Failed to initialize Twilio client: {str(e)}")
 
 @app.route("/", methods=["GET"])
 def home():
@@ -19,11 +46,27 @@ def home():
 
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
-    response = VoiceResponse()
-    dial = Dial(action="/handle-call-result", timeout=20)
-    dial.number(FORWARD_TO_NUMBER)  # Use environment variable
-    response.append(dial)
-    return Response(str(response), mimetype="text/xml")
+    try:
+        print("Received call request")
+        print(f"Call From: {request.form.get('From')}")
+        print(f"Forwarding to: {FORWARD_TO_NUMBER}")
+        
+        if not FORWARD_TO_NUMBER or not FORWARD_TO_NUMBER.startswith('+'):
+            raise ValueError(f"Invalid forward number format: {FORWARD_TO_NUMBER}")
+            
+        response = VoiceResponse()
+        dial = Dial(action="/handle-call-result", timeout=20)
+        dial.number(FORWARD_TO_NUMBER)
+        response.append(dial)
+        
+        twiml = str(response)
+        print(f"Generated TwiML: {twiml}")
+        return Response(twiml, mimetype="text/xml")
+    except Exception as e:
+        print(f"Error in handle_call: {str(e)}")
+        error_response = VoiceResponse()
+        error_response.say("We're sorry, but there was an error processing your call.")
+        return Response(str(error_response), mimetype="text/xml")
 
 
 @app.route("/handle-call-result", methods=["POST"])
