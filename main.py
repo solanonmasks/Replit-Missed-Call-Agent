@@ -86,9 +86,9 @@ def handle_call_result():
             try:
                 message_body = None
                 if call_status == "completed" and recording_url:
-                    message_body = "Thanks for leaving a voicemail! We'll get back to you as soon as possible."
+                    message_body = "Hi! This is Mike from FlowRite Plumbing — sorry I missed your call. Can you text me what you're looking for? I'll get back to you ASAP."
                 elif call_status in ["no-answer", "busy", "failed"]:
-                    message_body = "Hey! Sorry we missed your call. What can we help you with?"
+                    message_body = "Hi! This is Mike from FlowRite Plumbing — sorry I missed your call. Can you text me what you're looking for? I'll get back to you ASAP."
                 elif call_status == "completed":
                     message_body = "Thanks for calling! We'll be happy to help you again."
                 
