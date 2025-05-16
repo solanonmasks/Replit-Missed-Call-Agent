@@ -286,23 +286,21 @@ def handle_sms():
                 print(f"Error notifying plumber: {str(e)}")
 
         elif state["stage"] == "chatting":
+            advice = get_gpt_advice(message_body, state)
+            response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
             if message_body.upper() == "STOP":
                 response = "Thanks for chatting! Our plumber will be in touch soon."
                 del customer_states[from_number]
-            else:
-                advice = get_gpt_advice(message_body, state)
-                response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
 
-            # Send response back to customer
-            message = client.messages.create(
-                body=response,
-                from_=TWILIO_PHONE_NUMBER,
-                to=from_number
-            )
+        # Send response back to customer
+        message = client.messages.create(
+            body=response,
+            from_=TWILIO_PHONE_NUMBER,
+            to=from_number
+        )
 
     except Exception as e:
         print(f"Error in SMS handling: {str(e)}")
-        print(f"Full error details: {str(e.__dict__)}")
 
     return Response("", status=200)
 
