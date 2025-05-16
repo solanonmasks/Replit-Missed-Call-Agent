@@ -5,6 +5,7 @@ from config import Config
 from services.twilio_service import TwilioService
 from services.openai_service import OpenAIService
 from utils.error_handler import handle_errors
+from utils.rate_limit import rate_limit
 import logging
 
 app = Flask(__name__)
@@ -32,6 +33,7 @@ def home():
 
 @app.route("/call", methods=["POST"])
 @handle_errors
+@rate_limit
 def make_call():
     data = request.json
     if not data or not data.get('to_number') or not data.get('from_number'):
@@ -46,6 +48,7 @@ def make_call():
 
 @app.route("/chat", methods=["POST"])
 @handle_errors
+@rate_limit
 def chat():
     data = request.json
     if not data or not data.get('prompt'):
