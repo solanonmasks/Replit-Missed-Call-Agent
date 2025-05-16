@@ -30,9 +30,6 @@ def handle_sms():
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
 
-    state = customer_states.get(from_number, {})
-    stage = state.get("stage", "waiting_for_name")
-
     # Forward all messages to plumber
     try:
         client.messages.create(
@@ -44,19 +41,26 @@ def handle_sms():
         print(f"Error forwarding to plumber: {str(e)}")
 
     try:
-        if stage == "waiting_for_name":
-            customer_states[from_number] = {
-                "stage": "waiting_for_issue",
-                "name": message_body
-            }
-            response = "Thanks! Could you briefly describe your plumbing issue?"
-
-        elif stage == "waiting_for_issue":
-            customer_states[from_number] = {
-                "stage": "chatting",
-                "name": state["name"],
-                "issue": message_body
-            }
+        if from_number not in customer_states:
+            customer_states[from_number] = {"stage": "waiting_for_name"}
+            response = "Hi this is FloWrite Plumbing. Could you please tell us your name?"
+            
+        else:
+            state = customer_states[from_number]
+            
+            if state["stage"] == "waiting_for_name":
+                customer_states[from_number] = {
+                    "stage": "waiting_for_issue",
+                    "name": message_body
+                }
+                response = "Thanks! Could you briefly describe your plumbing issue?"
+                
+            elif state["stage"] == "waiting_for_issue":
+                customer_states[from_number] = {
+                    "stage": "chatting",
+                    "name": state["name"],
+                    "issue": message_body
+                }
             
             # Send detailed message to plumber
             plumber_message = f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {message_body}"
