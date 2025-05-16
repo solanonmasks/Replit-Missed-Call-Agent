@@ -127,6 +127,30 @@ def handle_sms():
 
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
+    caller = request.values.get('From')
+    duration = request.values.get('CallDuration')
+    status = request.values.get('CallStatus')
+    
+    # Start customer flow if call was missed, not completed, or too short
+    if status in ['no-answer', 'busy', 'failed'] or (status == 'completed' and duration and int(duration) < 10):
+        try:
+            # Send initial message to caller
+            client.messages.create(
+                body="Sorry we missed your call! Please text us your name and we'll help you with your plumbing issue.",
+                from_=TWILIO_PHONE_NUMBER,
+                to=caller
+            )
+            # Add caller to customer states to start collection flow
+            customer_states[caller] = {"stage": "waiting_for_name"}
+            # Notify plumber
+            client.messages.create(
+                body=f"Missed call or short call from: {caller}",
+                from_=TWILIO_PHONE_NUMBER,
+                to=FORWARD_TO_NUMBER
+            )
+        except Exception as e:
+            print(f"Error in call handling: {str(e)}")
+    
     response = VoiceResponse()
     dial = response.dial(timeout=15)
     dial.number(FORWARD_TO_NUMBER)
