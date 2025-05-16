@@ -247,9 +247,18 @@ def handle_sms():
 
     try:
         if state["stage"] == "waiting_for_name":
-            state["name"] = message_body
-            state["stage"] = "waiting_for_issue"
-            response = "Thanks! Could you briefly describe your plumbing issue?"
+            # Clean and validate the name
+            cleaned_name = message_body.strip()
+            if len(cleaned_name) < 2 or len(cleaned_name) > 30:
+                response = "Please provide a valid name between 2 and 30 characters."
+            elif not any(c.isalpha() for c in cleaned_name):
+                response = "Please provide a name containing letters."
+            else:
+                # Only use the first two words of the name to prevent long inappropriate phrases
+                name_parts = cleaned_name.split()[:2]
+                state["name"] = " ".join(name_parts)
+                state["stage"] = "waiting_for_issue"
+                response = "Thanks! Could you briefly describe your plumbing issue?"
 
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
