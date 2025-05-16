@@ -112,17 +112,31 @@ def get_gpt_advice(message, state=None):
             else:
                 state["conversation_history"] = []
             
-            # Add current message
-            messages.append({"role": "user", "content": message})
-            state["conversation_history"].append({"role": "user", "content": message})
+            # Add current message with better context tracking
+            current_message = {
+                "role": "user",
+                "content": message
+            }
+            messages.append(current_message)
+            
+            # Store both user messages and assistant responses
+            if "conversation_history" not in state:
+                state["conversation_history"] = []
+            state["conversation_history"].append(current_message)
+            
+            # Limit conversation history to last 10 messages to maintain context without overflow
+            if len(state["conversation_history"]) > 10:
+                state["conversation_history"] = state["conversation_history"][-10:]
         else:
             messages.append({"role": "user", "content": message})
 
         response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-0125",
             messages=messages,
-            max_tokens=250,
-            temperature=0.7
+            max_tokens=500,
+            temperature=0.9,
+            presence_penalty=0.6,
+            frequency_penalty=0.6
         )
 
         # Access the response content correctly
