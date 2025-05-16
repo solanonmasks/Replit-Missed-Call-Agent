@@ -84,8 +84,8 @@ def handle_call_result():
         print(f"Call Duration: {call_duration} seconds")
         print(f"Twilio Phone: {TWILIO_PHONE_NUMBER}")
 
-        # Consider it a missed call if duration is 0
-        if call_duration == 0:
+        # Consider it a missed call if duration is 0 or very short
+        if call_duration < 3:  # Less than 3 seconds is probably a missed call
             call_status = "no-answer"
 
         if TWILIO_PHONE_NUMBER and from_number:
