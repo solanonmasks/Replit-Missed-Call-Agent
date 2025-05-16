@@ -60,10 +60,16 @@ def home():
 def make_call():
     data = request.json    
     logger.info(f"Making call to {data.get('to_number')}")
+    if not Config.TWILIO_ACCOUNT_SID or not Config.TWILIO_AUTH_TOKEN:
+        return jsonify({"error": "Twilio credentials not configured"}), 500
+    
     call_sid = twilio_service.make_call(
         data.get('to_number'),
         data.get('from_number')
     )
+    if not call_sid:
+        return jsonify({"error": "Failed to make call"}), 500
+        
     return {"call_sid": call_sid}
 
 @app.route("/chat", methods=["POST"])
