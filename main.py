@@ -196,7 +196,9 @@ def handle_no_answer():
     print(f"Request Form Data: {request.form}")
 
     call_status = request.form.get("CallStatus")
-    if dial_status != "answered" or call_status == "completed":
+    dial_duration = int(request.form.get("DialCallDuration", "0"))
+    
+    if dial_status != "answered" or (call_status == "completed" and dial_duration < 10):
         print("\n=== Sending Initial SMS ===")
         print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
         print(f"To (Customer): {from_number}")
