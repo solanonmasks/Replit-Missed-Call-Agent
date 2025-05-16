@@ -75,17 +75,27 @@ def handle_call_result():
     try:
         call_status = request.form.get("DialCallStatus")
         from_number = request.form.get("From")
+        recording_url = request.form.get("RecordingUrl")
+        
         print(f"Call Status: {call_status}")
         print(f"From Number: {from_number}")
+        print(f"Recording URL: {recording_url}")
         print(f"Twilio Phone: {TWILIO_PHONE_NUMBER}")
 
-        if call_status in ["no-answer", "busy", "failed"] and TWILIO_PHONE_NUMBER and from_number:
+        if TWILIO_PHONE_NUMBER and from_number:
             try:
-                message = client.messages.create(
-                    body="Hey! Sorry we missed your call. What can we help you with?",
-                    from_=TWILIO_PHONE_NUMBER,
-                    to=from_number
-                )
+                if call_status == "completed" and recording_url:
+                    message = client.messages.create(
+                        body="Thanks for leaving a voicemail! We'll get back to you as soon as possible.",
+                        from_=TWILIO_PHONE_NUMBER,
+                        to=from_number
+                    )
+                elif call_status in ["no-answer", "busy", "failed"]:
+                    message = client.messages.create(
+                        body="Hey! Sorry we missed your call. What can we help you with?",
+                        from_=TWILIO_PHONE_NUMBER,
+                        to=from_number
+                    )
                 print(f"SMS sent successfully: {message.sid}")
             except Exception as sms_error:
                 print(f"SMS sending failed: {str(sms_error)}")
