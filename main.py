@@ -62,17 +62,20 @@ def handle_sms():
 
     # Then handle customer conversation
     if from_number not in customer_states:
+        # Only initialize if not already set by call handler
         customer_states[from_number] = {"stage": "waiting_for_name"}
-        response = "Hi this is FloWrite Plumbing. Could you please tell us your name?"
-        try:
-            message = client.messages.create(
-                body=response,
-                from_=TWILIO_PHONE_NUMBER,
-                to=from_number
-            )
-        except Exception as e:
-            print(f"Error sending SMS: {str(e)}")
-        return Response("", status=200)
+        # Only send initial message if this is a fresh conversation
+        if message_body.strip().lower() == "hi" or message_body.strip().lower() == "hello":
+            response = "Hi this is FloWrite Plumbing. Could you please tell us your name?"
+            try:
+                message = client.messages.create(
+                    body=response,
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=from_number
+                )
+            except Exception as e:
+                print(f"Error sending SMS: {str(e)}")
+            return Response("", status=200)
 
     state = customer_states[from_number]
 
