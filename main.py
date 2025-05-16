@@ -103,8 +103,17 @@ def handle_no_answer():
 def handle_status():
     return Response("", status=200)
 
+@app.route("/test", methods=["GET"])
+def test():
+    return "SMS webhook is working!"
+
 @app.route("/sms", methods=["POST"])
 def handle_sms():
+    print("\n=== SMS Webhook Hit ===")
+    print(f"Request Method: {request.method}")
+    print(f"Request Form: {request.form}")
+    print(f"Request Headers: {request.headers}")
+    
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
     
