@@ -31,13 +31,20 @@ def handle_call_result():
     try:
         call_status = request.form.get("DialCallStatus")
         from_number = request.form.get("From")
+        print(f"Call Status: {call_status}")
+        print(f"From Number: {from_number}")
+        print(f"Twilio Phone: {TWILIO_PHONE_NUMBER}")
 
         if call_status in ["no-answer", "busy", "failed"] and TWILIO_PHONE_NUMBER and from_number:
-            client.messages.create(
-                body="Hey! Sorry we missed your call. What can we help you with?",
-                from_=TWILIO_PHONE_NUMBER,
-                to=from_number
-            )
+            try:
+                message = client.messages.create(
+                    body="Hey! Sorry we missed your call. What can we help you with?",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=from_number
+                )
+                print(f"SMS sent successfully: {message.sid}")
+            except Exception as sms_error:
+                print(f"SMS sending failed: {str(sms_error)}")
         return Response("", status=200)
     except Exception as e:
         print(f"Error in handle_call_result: {str(e)}")
