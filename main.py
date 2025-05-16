@@ -67,7 +67,7 @@ def get_gpt_advice(message, state=None):
     try:
         print(f"\n=== Starting GPT Request ===")
         print(f"Message: {message}")
-        
+
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
 
@@ -99,19 +99,19 @@ def get_gpt_advice(message, state=None):
                 messages.extend(state["conversation_history"])
             else:
                 state["conversation_history"] = []
-            
+
             # Add current message with better context tracking
             current_message = {
                 "role": "user",
                 "content": message
             }
             messages.append(current_message)
-            
+
             # Store both user messages and assistant responses
             if "conversation_history" not in state:
                 state["conversation_history"] = []
             state["conversation_history"].append(current_message)
-            
+
             # Maintain full conversation context with structured history
             if len(state["conversation_history"]) > 20:
                 # Keep first 5 messages (context setting) and last 15 messages (recent context)
@@ -119,7 +119,7 @@ def get_gpt_advice(message, state=None):
                     state["conversation_history"][:5] + 
                     state["conversation_history"][-15:]
                 )
-            
+
             # Add conversation markers for better context awareness
             if len(state["conversation_history"]) > 1:
                 current_message["content"] = f"Previous context: {state['conversation_history'][-1]['content']}\nNew message: {message}"
@@ -172,7 +172,7 @@ def handle_no_answer():
 
     call_status = request.form.get("CallStatus")
     dial_duration = int(request.form.get("DialCallDuration", "0"))
-    
+
     if dial_status != "answered" or (call_status == "completed" and dial_duration < 10):
         print("\n=== Sending Initial SMS ===")
         print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
@@ -236,44 +236,49 @@ def handle_sms():
                 # Only use the first two words of the name to prevent long inappropriate phrases
                 name_parts = cleaned_name.split()[:2]
                 state["name"] = " ".join(name_parts)
-                state["stage"] = "waiting_for_issue"
-                response = "Thanks! Could you briefly describe your plumbing issue?"
+                state["stage"] = "waiting_for_location"
+                response = "Thanks! What area are you located in?"
+
+        elif state["stage"] == "waiting_for_location":
+            state["location"] = message_body
+            state["stage"] = "waiting_for_issue"
+            response = "Thanks! Could you briefly describe your plumbing issue?"
 
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
             state["stage"] = "chatting"
-            
+
             # First send acknowledgment and offer help
             response = (
                 f"Thanks {state['name']}, I understand you're having an issue with {state['issue']}. "
                 f"Our plumber will contact you soon.\n\n"
                 "Would you like some help or advice while you wait?"
             )
-            
+
             # Send this first message
             message = client.messages.create(
                 body=response,
                 from_=TWILIO_PHONE_NUMBER,
                 to=from_number
             )
-            
+
             # Then notify plumber
             try:
                 plumber_message = client.messages.create(
-                    body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    body=f"New plumbing request:\nName: {state['name']}\nLocation: {state.get('location', 'Unknown')}\nPhone: {from_number}\nIssue: {state['issue']}",
                     from_=TWILIO_PHONE_NUMBER,
                     to=FORWARD_TO_NUMBER
                 )
             except Exception as e:
                 print(f"Error notifying plumber: {str(e)}")
-                
+
             # Don't send another response since we already sent one
             return Response("", status=200)
 
             # Then notify plumber
             try:
                 plumber_message = client.messages.create(
-                    body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    body=f"New plumbing request:\nName: {state['name']}\nLocation: {state.get('location', 'Unknown')}\nPhone: {from_number}\nIssue: {state['issue']}",
                     from_=TWILIO_PHONE_NUMBER,
                     to=FORWARD_TO_NUMBER
                 )
@@ -318,7 +323,7 @@ def admin_login():
             session['admin_logged_in'] = True
             return redirect(url_for('admin_dashboard'))
         return "Invalid password"
-    
+
     return """
         <form method="post">
             <h2>Admin Login</h2>
@@ -339,7 +344,7 @@ def admin_dashboard():
         "active_conversations": len([k for k,v in customer_states.items() 
                                    if v.get("stage") == "chatting"])
     } for number, config in BUSINESS_CONFIG.items()}
-    
+
     return f"""
     <h1>Plumber Management Dashboard</h1>
     <style>
