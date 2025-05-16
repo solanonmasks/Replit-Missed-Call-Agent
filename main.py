@@ -1,86 +1,372 @@
+from flask import Flask, request, Response, json, session, redirect, url_for, flash
+from twilio.rest import Client
+from twilio.twiml.voice_response import VoiceResponse
+import os
+import openai
 
-from flask import Flask, request, Response, json, session, jsonify, render_template
-from routes.admin import admin_bp
-from config import Config
-from services.twilio_service import TwilioService
-from services.openai_service import OpenAIService
-from utils.error_handler import handle_errors
-from utils.rate_limit import rate_limit
-from utils.validation import validate_request
-from utils.cache import cached
-import logging
-from time import time
-
-from flask import Flask, request, Response, json, session, jsonify, render_template, make_response
 app = Flask(__name__)
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# Multi-business configuration
+BUSINESS_CONFIG = {
+    "+17786535845": {  # Twilio number as key
+        "forward_to": "+16044423722",
+        "business_name": "FlowRite Plumbing",
+        "business_type": "plumber",  # plumber, electrician, handyman, etc.
+        "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID"),
+        "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN"),
+        "openai_key": os.environ.get("OPENAI_API_KEY")
+    }
+    # Add more businesses here
+}
 
-@app.before_request
-def log_request():
-    request.start_time = time()
-    logger.info(f"Incoming {request.method} request to {request.path}")
+# Default credentials for testing
+TWILIO_ACCOUNT_SID = BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]]["twilio_sid"]
+TWILIO_AUTH_TOKEN = BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]]["twilio_token"]
+TWILIO_PHONE_NUMBER = list(BUSINESS_CONFIG.keys())[0]
+FORWARD_TO_NUMBER = BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]["forward_to"]
+OPENAI_API_KEY = BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]["openai_key"]
 
-@app.after_request
-def log_response(response):
-    duration = time() - request.start_time
-    logger.info(f"Request completed in {duration:.2f}s with status {response.status_code}")
-    return response
-app.config.from_object(Config)
-app.secret_key = Config.SECRET_KEY
+# Verify credentials
+if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_TO_NUMBER]):
+    print("ERROR: Missing required Twilio credentials!")
+    print(f"ACCOUNT_SID: {'Present' if TWILIO_ACCOUNT_SID else 'Missing'}")
+    print(f"AUTH_TOKEN: {'Present' if TWILIO_AUTH_TOKEN else 'Missing'}")
+    print(f"PHONE_NUMBER: {'Present' if TWILIO_PHONE_NUMBER else 'Missing'}")
+    print(f"FORWARD_NUMBER: {'Present' if FORWARD_TO_NUMBER else 'Missing'}")
 
-app.register_blueprint(admin_bp)
+# Initialize OpenAI client with API key from environment
+try:
+    openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    # Test the client immediately
+    test_response = openai_client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": "Test message"}],
+        max_tokens=10
+    )
+    print("OpenAI client test successful!")
+    print(f"Test response: {test_response}")
+except Exception as e:
+    print(f"OpenAI initialization error: {str(e)}")
+    print(f"API key type: {type(OPENAI_API_KEY)}")
+    print(f"API key length: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+def format_phone_number(number):
+    if not number:
+        return None
+    cleaned = ''.join(filter(str.isdigit, number))
+    if not cleaned.startswith('1'):
+        cleaned = '1' + cleaned
+    return '+' + cleaned
 
-twilio_service = TwilioService()
-openai_service = OpenAIService()
+TWILIO_PHONE_NUMBER = format_phone_number(TWILIO_PHONE_NUMBER)
+FORWARD_TO_NUMBER = format_phone_number(FORWARD_TO_NUMBER)
 
-from utils.stats import Stats
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-stats_tracker = Stats()
+def get_gpt_advice(message, state=None):
+    try:
+        print(f"\n=== Starting GPT Request ===")
+        print(f"Message: {message}")
+
+        if not OPENAI_API_KEY:
+            raise ValueError("OpenAI API key is missing")
+
+        # Build conversation history with enhanced context and capabilities
+        messages = [
+            {"role": "system", "content": f"""You're a regular plumber's assistant named Mike who's been in the business for 15 years. Talk like a normal person - no corporate speak, just practical advice from experience. Keep it real and straight to the point.
+
+            About the customer:
+            Name: {state.get('name', 'the customer') if state else 'the customer'}
+            Issue: {state.get('issue', 'unknown') if state else 'unknown'}
+
+            Key points:
+            - Talk like you're chatting with a neighbor
+            - Give quick, practical tips they can actually use
+            - If it's dangerous, just tell them straight up
+            - Don't repeat yourself unless they ask
+            - Keep responses focused and helpful
+
+            For emergencies (gas, flooding, sewage):
+            Just say "Whoa, hold up - you need to [safety action] right now. Call 911 if you can't get emergency services."
+
+            Remember: Our plumber has their info and is checking the case. Just help them out while they wait."""},
+        ]
+
+        # Build comprehensive conversation history
+        if state:
+            # Add previous messages from state if they exist
+            if "conversation_history" in state:
+                messages.extend(state["conversation_history"])
+            else:
+                state["conversation_history"] = []
+
+            # Add current message with better context tracking
+            current_message = {
+                "role": "user",
+                "content": message
+            }
+            messages.append(current_message)
+
+            # Store both user messages and assistant responses
+            if "conversation_history" not in state:
+                state["conversation_history"] = []
+            state["conversation_history"].append(current_message)
+
+            # Maintain full conversation context with structured history
+            if len(state["conversation_history"]) > 20:
+                # Keep first 5 messages (context setting) and last 15 messages (recent context)
+                state["conversation_history"] = (
+                    state["conversation_history"][:5] + 
+                    state["conversation_history"][-15:]
+                )
+
+            # Add conversation markers for better context awareness
+            if len(state["conversation_history"]) > 1:
+                current_message["content"] = f"Previous context: {state['conversation_history'][-1]['content']}\nNew message: {message}"
+        else:
+            messages.append({"role": "user", "content": message})
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=messages + [{"role": "system", "content": "Keep responses clear and focused. Break up long explanations into digestible chunks."}],
+            max_tokens=300,
+            temperature=0.7,
+            presence_penalty=0.6,
+            frequency_penalty=0.6,
+            top_p=1
+        )
+
+        # Access the response content correctly
+        content = response.choices[0].message.content if response.choices else "No response generated"
+        print(f"Got GPT response: {content}")
+        return content
+    except Exception as e:
+        print(f"Detailed GPT error: {str(e)}")
+        print(f"API Key present: {'Yes' if openai.api_key else 'No'}")
+        return "I apologize, but I couldn't generate specific advice at the moment. Please try again."
+
+customer_states = {}  # Store customer interaction states
 
 @app.route("/", methods=["GET"])
-@handle_errors
 def home():
-    logger.info("Accessing home endpoint")
-    stats_tracker.record_call('home')
     return "Server is live!"
 
-@app.route("/test-call")
-def test_call():
-    try:
-        # Make sure to replace this with your verified phone number
-        to_number = Config.TWILIO_FROM_NUMBER  # Using same number to call itself for testing
-        from_number = Config.TWILIO_FROM_NUMBER
-        
-        call_sid = twilio_service.make_call(to_number, from_number)
-        if call_sid:
-            return "Test call initiated successfully!"
-        return "Call failed - check your Twilio credentials and numbers"
-    except Exception as e:
-        return f"Error: {str(e)}"
+@app.route("/handle-call", methods=["POST"])
+def handle_call():
+    response = VoiceResponse()
+    # Try to forward to plumber first
+    dial = response.dial(timeout=15, action='/handle-no-answer')
+    dial.number(FORWARD_TO_NUMBER)
+    return str(response)
 
-@app.route("/chat", methods=["POST"])
-@handle_errors
-@rate_limit
-@validate_request('prompt')
-@cached(ttl=300)  # Cache responses for 5 minutes
-def chat():
-    data = request.json    
-    logger.info("Generating chat response")
-    response = openai_service.generate_response(data.get('prompt'))
-    return {"response": response}
+@app.route("/handle-no-answer", methods=["POST"])
+def handle_no_answer():
+    dial_status = request.form.get("DialCallStatus")
+    from_number = request.form.get("From")
+
+    response = VoiceResponse()
+    print("\n=== Handling No Answer ===")
+    print(f"Dial Status: {dial_status}")
+    print(f"From Number: {from_number}")
+    print(f"Request Form Data: {request.form}")
+
+    call_status = request.form.get("CallStatus")
+    dial_duration = int(request.form.get("DialCallDuration", "0"))
+
+    if dial_status != "answered" or (call_status == "completed" and dial_duration < 10):
+        print("\n=== Sending Initial SMS ===")
+        print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
+        print(f"To (Customer): {from_number}")
+        print(f"Forward Number (Plumber): {FORWARD_TO_NUMBER}")
+        response.say("Sorry, we couldn't reach our plumber. We'll send you a text message shortly to collect more information.")
+        # Send initial SMS
+        try:
+            message = client.messages.create(
+                body="Hi! This is FlowRite Plumbing. Could you please tell us your name?",
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+            print(f"SMS sent successfully with SID: {message.sid}")
+            customer_states[from_number] = {"stage": "waiting_for_name"}
+        except Exception as e:
+            print(f"Error sending SMS: {str(e)}")
+            print(f"TWILIO_PHONE_NUMBER: {TWILIO_PHONE_NUMBER}")
+            print(f"Customer number: {from_number}")
+
+    response.hangup()
+    return str(response)
+
+@app.route("/status", methods=["POST"])
+def handle_status():
+    return Response("", status=200)
+
+@app.route("/test", methods=["GET"])
+def test():
+    return "SMS webhook is working!"
+
+@app.route("/sms", methods=["POST"])
+def handle_sms():
+    print("\n=== SMS Webhook Hit ===")
+    print(f"Request Method: {request.method}")
+    print(f"Request Form: {request.form}")
+    print(f"Request Headers: {request.headers}")
+
+    from_number = request.form.get("From")
+    message_body = request.form.get("Body", "").strip()
+
+    if from_number not in customer_states:
+        customer_states[from_number] = {"stage": "waiting_for_name"}
+
+    state = customer_states.get(from_number, {"stage": "waiting_for_name"})
+    print(f"\n=== Handling SMS ===")
+    print(f"From: {from_number}")
+    print(f"Message: {message_body}")
+    print(f"Current state: {state}")
+
+    try:
+        stage = state.get("stage", "waiting_for_name")
+        if stage == "waiting_for_name":
+            # Clean and validate the name
+            cleaned_name = message_body.strip()
+            if len(cleaned_name) < 2 or len(cleaned_name) > 30:
+                response = "Please provide a valid name between 2 and 30 characters."
+            elif not any(c.isalpha() for c in cleaned_name):
+                response = "Please provide a name containing letters."
+            else:
+                # Only use the first two words of the name to prevent long inappropriate phrases
+                name_parts = cleaned_name.split()[:2]
+                state["name"] = " ".join(name_parts)
+                state["stage"] = "waiting_for_location"
+                response = "Thanks! What area are you located in?"
+
+        elif state["stage"] == "waiting_for_location":
+            state["location"] = message_body
+            state["stage"] = "waiting_for_issue"
+            response = "Thanks! Could you briefly describe your plumbing issue?"
+
+        elif state["stage"] == "waiting_for_issue":
+            state["issue"] = message_body
+            state["stage"] = "chatting"
+
+            # First send acknowledgment and offer help
+            response = (
+                f"Thanks {state['name']}, I understand you're having an issue with {state['issue']}. "
+                f"Our plumber will contact you soon.\n\n"
+                "Would you like some help or advice while you wait?"
+            )
+
+            # Send this first message
+            message = client.messages.create(
+                body=response,
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+
+            # Then notify plumber
+            try:
+                plumber_message = client.messages.create(
+                    body=f"New plumbing request:\nName: {state['name']}\nLocation: {state.get('location', 'Unknown')}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=FORWARD_TO_NUMBER
+                )
+            except Exception as e:
+                print(f"Error notifying plumber: {str(e)}")
+
+            # Don't send another response since we already sent one
+            return Response("", status=200)
+
+            # Then notify plumber
+            try:
+                plumber_message = client.messages.create(
+                    body=f"New plumbing request:\nName: {state['name']}\nLocation: {state.get('location', 'Unknown')}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=FORWARD_TO_NUMBER
+                )
+            except Exception as e:
+                print(f"Error notifying plumber: {str(e)}")
+
+        elif state["stage"] == "chatting":
+            advice = get_gpt_advice(message_body, state)
+            response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
+            if message_body.upper() == "STOP":
+                response = "Thanks for chatting! Our plumber will be in touch soon."
+                del customer_states[from_number]
+
+        # Send response back to customer
+        message = client.messages.create(
+            body=response,
+            from_=TWILIO_PHONE_NUMBER,
+            to=from_number
+        )
+
+    except Exception as e:
+        print(f"Error in SMS handling: {str(e)}")
+
+    return Response("", status=200)
+
+import functools
+from flask import redirect, url_for, session, request, flash
+
+def admin_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        password = request.form.get("password")
+        if password == os.environ.get("ADMIN_PASSWORD", "admin123"):  # Default for testing
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        return "Invalid password"
+
+    return """
+        <form method="post">
+            <h2>Admin Login</h2>
+            <input type="password" name="password" placeholder="Enter admin password">
+            <button type="submit">Login</button>
+        </form>
+    """
+
+@app.route("/admin", methods=["GET"])
+@admin_required
+def admin_dashboard():
+    stats = {number: {
+        "business": config["business_name"],
+        "active_chats": len([k for k,v in customer_states.items() 
+                           if v.get("plumber_number") == number]),
+        "forward_to": config["forward_to"],
+        "total_conversations": len(customer_states),
+        "active_conversations": len([k for k,v in customer_states.items() 
+                                   if v.get("stage") == "chatting"])
+    } for number, config in BUSINESS_CONFIG.items()}
+
+    return f"""
+    <h1>Plumber Management Dashboard</h1>
+    <style>
+        .stats {{ padding: 20px; background: #f5f5f5; border-radius: 5px; }}
+        .actions {{ margin-top: 20px; }}
+        button {{ padding: 10px; margin: 5px; }}
+    </style>
+    <div class="stats">
+        <pre>{json.dumps(stats, indent=2)}</pre>
+    </div>
+    <div class="actions">
+        <form action="/admin/add_plumber" method="post" style="margin-top: 20px;">
+            <h3>Add New Plumber</h3>
+            <input type="text" name="business_name" placeholder="Business Name" required><br>
+            <input type="text" name="twilio_number" placeholder="Twilio Number" required><br>
+            <input type="text" name="forward_to" placeholder="Forward Number" required><br>
+            <button type="submit">Add Plumber</button>
+        </form>
+    </div>
+    """
+
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key")  # Default for testing
 
 if __name__ == "__main__":
-    app.run(
-        host=app.config['HOST'],
-        port=app.config['PORT'],
-        debug=app.config['DEBUG']
-    )
+    app.run(host='0.0.0.0', port=81)
