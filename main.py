@@ -17,6 +17,12 @@ TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
 FORWARD_TO_NUMBER = os.environ.get("FORWARD_TO_NUMBER")
 
+print("Twilio Configuration:")
+print(f"Account SID exists: {bool(TWILIO_ACCOUNT_SID)}")
+print(f"Auth Token exists: {bool(TWILIO_AUTH_TOKEN)}")
+print(f"Phone Number exists: {bool(TWILIO_PHONE_NUMBER)}")
+print(f"Forward Number exists: {bool(FORWARD_TO_NUMBER)}")
+
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 # Initialize OpenAI
