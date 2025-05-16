@@ -7,6 +7,7 @@ from services.openai_service import OpenAIService
 from utils.error_handler import handle_errors
 from utils.rate_limit import rate_limit
 from utils.validation import validate_request
+from utils.cache import cached
 import logging
 from time import time
 
@@ -49,9 +50,7 @@ def home():
 @rate_limit
 @validate_request('to_number', 'from_number')
 def make_call():
-    data = request.json
-        return jsonify({"error": "Missing required parameters"}), 400
-    
+    data = request.json    
     logger.info(f"Making call to {data.get('to_number')}")
     call_sid = twilio_service.make_call(
         data.get('to_number'),
@@ -63,10 +62,9 @@ def make_call():
 @handle_errors
 @rate_limit
 @validate_request('prompt')
+@cached(ttl=300)  # Cache responses for 5 minutes
 def chat():
-    data = request.json
-        return jsonify({"error": "Missing prompt parameter"}), 400
-        
+    data = request.json    
     logger.info("Generating chat response")
     response = openai_service.generate_response(data.get('prompt'))
     return {"response": response}
