@@ -252,21 +252,10 @@ def handle_sms():
 
             response = (
                 f"Thanks {state['name']}, we've received your request and our plumber will contact you as soon as possible. "
-                "If you'd like some immediate DIY tips while you wait, just reply TIPS. "
-                "Otherwise, we'll be in touch shortly!"
+                "Feel free to ask any questions while you wait - I'm here to help! "
+                "Type STOP anytime to end the conversation."
             )
-            state["stage"] = "waiting_for_tips_request"
-
-        elif state["stage"] == "waiting_for_tips_request":
-            if message_body.upper() == "TIPS":
-                advice = get_gpt_advice(state["issue"])
-                response = f"{advice}\n\nNeed more tips? Just ask!"
-                state["stage"] = "chatting"
-            elif message_body.upper() == "STOP":
-                response = "No problem! Our plumber will be in touch soon."
-                del customer_states[from_number]
-            else:
-                response = "Our plumber will be in touch soon. If you'd like some DIY tips while you wait, just reply TIPS."
+            state["stage"] = "chatting"
 
         elif state["stage"] == "chatting":
             advice = get_gpt_advice(message_body, state)
