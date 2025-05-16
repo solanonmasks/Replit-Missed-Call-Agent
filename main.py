@@ -266,7 +266,7 @@ def handle_sms():
 
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
-            state["stage"] = "issue_received"
+            state["stage"] = "chatting"
 
             # Send info to plumber
             plumber_message = client.messages.create(
@@ -275,12 +275,13 @@ def handle_sms():
                 to=FORWARD_TO_NUMBER
             )
 
+            # Get initial AI response to the issue
+            initial_advice = get_gpt_advice(message_body, state)
             response = (
-                f"Thanks {state['name']}, we've received your request and our plumber will contact you as soon as possible. "
-                "Feel free to ask any questions while you wait - I'm here to help! "
-                "Type STOP anytime to end the conversation."
+                f"Thanks {state['name']}, we've received your request and our plumber will contact you soon.\n\n"
+                f"{initial_advice}\n\n"
+                "Feel free to ask any other questions while you wait! Type STOP anytime to end the conversation."
             )
-            state["stage"] = "chatting"
 
         elif state["stage"] == "chatting":
             advice = get_gpt_advice(message_body, state)
