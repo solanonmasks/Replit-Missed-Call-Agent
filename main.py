@@ -19,10 +19,15 @@ logger = logging.getLogger(__name__)
 twilio_service = TwilioService()
 openai_service = OpenAIService()
 
+from utils.stats import Stats
+
+stats_tracker = Stats()
+
 @app.route("/", methods=["GET"])
 @handle_errors
 def home():
     logger.info("Accessing home endpoint")
+    stats_tracker.record_call('home')
     return "Server is live!"
 
 @app.route("/call", methods=["POST"])

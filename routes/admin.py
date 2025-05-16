@@ -20,7 +20,16 @@ def login():
 @handle_errors
 @admin_required
 def dashboard():
-    return render_template('admin/dashboard.html')
+    stats_tracker = Stats()
+    return render_template('admin/dashboard.html', stats=stats_tracker.get_stats())
+
+@admin_bp.route('/admin/reset-stats', methods=['POST'])
+@handle_errors
+@admin_required
+def reset_stats():
+    stats_tracker = Stats()
+    stats_tracker.reset()
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/admin/logout')
 def logout():

@@ -1,11 +1,36 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Admin Dashboard</title>
+    <style>
+        .stats-container { margin: 20px; padding: 15px; border: 1px solid #ddd; }
+        .stat-box { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+    </style>
 </head>
 <body>
     <h1>Admin Dashboard</h1>
-    <p>Welcome to the admin dashboard!</p>
-    <a href="{{ url_for('admin.logout') }}">Logout</a>
+    <div class="stats-container">
+        <h2>System Statistics</h2>
+        <div class="stat-box">
+            <h3>Uptime: {{ stats.uptime }}</h3>
+        </div>
+        <div class="stat-box">
+            <h3>API Calls</h3>
+            {% for endpoint, count in stats.calls.items() %}
+                <p>{{ endpoint }}: {{ count }}</p>
+            {% endfor %}
+        </div>
+        <div class="stat-box">
+            <h3>Errors</h3>
+            {% for endpoint, count in stats.errors.items() %}
+                <p>{{ endpoint }}: {{ count }}</p>
+            {% endfor %}
+        </div>
+    </div>
+    <form action="{{ url_for('admin.reset_stats') }}" method="POST">
+        <button type="submit">Reset Statistics</button>
+    </form>
+    <p><a href="{{ url_for('admin.logout') }}">Logout</a></p>
 </body>
 </html>
