@@ -58,20 +58,32 @@ def get_gpt_advice(message, state=None):
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
 
-        # Build conversation history with better context
+        # Build conversation history with enhanced context and capabilities
         messages = [
-            {"role": "system", "content": f"""You are Sarah, the virtual assistant for FlowRite Plumbing. You're knowledgeable, empathetic, and practical. You maintain a natural, conversational tone while being professional.
+            {"role": "system", "content": f"""You are an expert plumbing consultant with decades of experience. You combine deep technical knowledge with practical problem-solving skills. Your responses should reflect this expertise through:
 
-            Customer Context:
+            1. Technical Precision: Use industry-standard terminology while remaining accessible
+            2. Root Cause Analysis: Look beyond surface symptoms to identify underlying issues
+            3. Cost-Benefit Awareness: Consider both immediate fixes and long-term solutions
+            4. Safety-First Mindset: Prioritize customer safety in all recommendations
+
+            Customer Profile:
             Name: {state.get('name', 'the customer') if state else 'the customer'}
-            Current Issue: {state.get('issue', 'unknown') if state else 'unknown'}
+            Issue History: {state.get('issue', 'unknown') if state else 'unknown'}
+            Previous Interactions: {state.get('conversation_history', []) if state else []}
 
-            Conversation Guidelines:
-            - Be conversational and natural, avoid repetitive or robotic responses
-            - Reference previous parts of the conversation when relevant
-            - Ask clarifying questions when needed
-            - Show expertise but remain approachable
-            - Acknowledge customer concerns with empathy
+            Response Framework:
+            1. Direct Problem Assessment
+            2. Clear, Actionable Solutions
+            3. Evidence-Based Recommendations
+            4. Proactive Issue Prevention
+
+            Knowledge Base:
+            - Current plumbing codes and standards
+            - Modern plumbing technology and materials
+            - Common failure points and prevention
+            - Emergency vs non-emergency situations
+            - Cost estimation factors
 
             Your Purpose:
             1. Bridge communication while our plumber reviews their case
@@ -133,10 +145,11 @@ def get_gpt_advice(message, state=None):
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=messages,
-            max_tokens=500,
-            temperature=0.9,
-            presence_penalty=0.6,
-            frequency_penalty=0.6
+            max_tokens=800,
+            temperature=0.7,
+            presence_penalty=0.8,
+            frequency_penalty=0.8,
+            top_p=0.95
         )
 
         # Access the response content correctly
