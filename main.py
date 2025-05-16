@@ -110,15 +110,12 @@ def handle_sms():
     
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
-        # Return early for automated messages when we're just starting
-        if "thanks for the message" in message_body.lower():
-            return Response("", status=200)
     
     state = customer_states[from_number]
-    
-    # Only ignore automated messages before we have customer interaction
-    if "thanks for the message" in message_body.lower() and state["stage"] == "waiting_for_name":
-        return Response("", status=200)
+    print(f"\n=== Handling SMS ===")
+    print(f"From: {from_number}")
+    print(f"Message: {message_body}")
+    print(f"Current state: {state}")
     
     try:
         if state["stage"] == "waiting_for_name":
