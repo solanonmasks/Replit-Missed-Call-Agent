@@ -41,29 +41,38 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 def get_gpt_advice(issue):
     try:
-        print(f"Calling OpenAI API with issue: {issue}")
-        print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
+        print(f"\n=== Starting GPT Request ===")
+        print(f"Issue: {issue}")
+        print(f"API Key status: {'Present' if OPENAI_API_KEY else 'Missing'}")
         
-        # Test the API connection first
-        print("Testing API connection...")
+        if not OPENAI_API_KEY:
+            raise ValueError("OpenAI API key is missing")
+            
+        # Make the API call
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a helpful plumbing assistant."},
-                {"role": "user", "content": f"What's a quick fix for this plumbing issue: {issue}"}
+                {"role": "system", "content": "You are a plumbing expert. Give very brief, practical advice."},
+                {"role": "user", "content": issue}
             ],
-            max_tokens=150,
-            temperature=0.7
+            max_tokens=100,
+            temperature=0.5
         )
         
-        # Access the response content correctly
-        content = response.choices[0].message.content if response.choices else "No response generated"
-        print(f"Got GPT response: {content}")
+        if not response.choices:
+            raise ValueError("No choices in response")
+            
+        content = response.choices[0].message.content
+        print(f"Success! Response: {content}")
         return content
+        
+    except ValueError as ve:
+        print(f"Validation error: {str(ve)}")
+        return "Sorry, there was an issue with the API configuration. Please try again later."
     except Exception as e:
-        print(f"Detailed GPT error: {str(e)}")
-        print(f"API Key present: {'Yes' if openai.api_key else 'No'}")
-        return "I apologize, but I couldn't generate specific advice at the moment. Please try again."
+        print(f"OpenAI API error: {str(e)}")
+        print(f"Error type: {type(e)}")
+        return "I couldn't generate advice right now. Please try again or wait for the plumber to contact you."
 
 customer_states = {}  # Store customer interaction states
 
