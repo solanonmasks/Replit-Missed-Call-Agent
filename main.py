@@ -72,24 +72,6 @@ def handle_no_answer():
     
     response = VoiceResponse()
     print(f"handle_no_answer called with status: {dial_status}")
-    print(f"Request form data: {request.form}")
-    
-    # Test SMS immediately
-    try:
-        print(f"\nAttempting to send test SMS:")
-        print(f"From: {TWILIO_PHONE_NUMBER}")
-        print(f"To: {from_number}")
-        
-        test_message = client.messages.create(
-            body="Test message from FlowRite Plumbing",
-            from_=TWILIO_PHONE_NUMBER,
-            to=from_number
-        )
-        print(f"Test SMS sent with SID: {test_message.sid}")
-    except Exception as e:
-        print(f"Test SMS failed with error: {str(e)}")
-        print(f"Error type: {type(e).__name__}")
-        return str(VoiceResponse())  # Return empty response on error
     if dial_status in ["no-answer", "busy", "failed"]:
         print(f"Call not answered. Status: {dial_status}")
         print(f"Customer number: {from_number}")
