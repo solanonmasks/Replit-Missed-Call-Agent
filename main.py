@@ -362,4 +362,4 @@ def admin_dashboard():
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key")  # Default for testing
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=81)
+    app.run(host='0.0.0.0', port=5000)
