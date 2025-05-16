@@ -269,16 +269,32 @@ def handle_sms():
             state["issue"] = message_body
             state["stage"] = "chatting"
             
-            # First get AI response
-            initial_advice = get_gpt_advice(message_body, state)
-            
-            # Construct customer response
+            # First send acknowledgment and offer help
             response = (
                 f"Thanks {state['name']}, I understand you're having an issue with {state['issue']}. "
                 f"Our plumber will contact you soon.\n\n"
-                f"{initial_advice}\n\n"
-                "Feel free to ask any questions while you wait! Type STOP anytime to end the conversation."
+                "Would you like some help or advice while you wait?"
             )
+            
+            # Send this first message
+            message = client.messages.create(
+                body=response,
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+            
+            # Then notify plumber
+            try:
+                plumber_message = client.messages.create(
+                    body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
+                    from_=TWILIO_PHONE_NUMBER,
+                    to=FORWARD_TO_NUMBER
+                )
+            except Exception as e:
+                print(f"Error notifying plumber: {str(e)}")
+                
+            # Don't send another response since we already sent one
+            return Response("", status=200)
 
             # Then notify plumber
             try:
