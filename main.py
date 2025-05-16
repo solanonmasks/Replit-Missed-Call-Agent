@@ -53,24 +53,19 @@ def home():
     stats_tracker.record_call('home')
     return "Server is live!"
 
-@app.route("/handle-call", methods=["POST"])
-def make_call():
+@app.route("/test-call")
+def test_call():
     try:
-        if not Config.TWILIO_ACCOUNT_SID or not Config.TWILIO_AUTH_TOKEN:
-            return jsonify({"error": "Twilio credentials not configured"}), 500
-            
-        if not Config.TWILIO_FROM_NUMBER:
-            return jsonify({"error": "Twilio FROM number not configured"}), 500
-            
-        to_number = request.json.get('to_number') if request.json else "+15555555555"
+        # Make sure to replace this with your verified phone number
+        to_number = Config.TWILIO_FROM_NUMBER  # Using same number to call itself for testing
         from_number = Config.TWILIO_FROM_NUMBER
         
         call_sid = twilio_service.make_call(to_number, from_number)
-        return jsonify({"status": "success", "call_sid": call_sid})
+        if call_sid:
+            return "Test call initiated successfully!"
+        return "Call failed - check your Twilio credentials and numbers"
     except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Call error: {error_msg}")
-        return jsonify({"error": error_msg}), 500
+        return f"Error: {str(e)}"
 
 @app.route("/chat", methods=["POST"])
 @handle_errors
