@@ -1,4 +1,3 @@
-
 from flask import Flask, request, Response
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse
@@ -44,35 +43,38 @@ def get_gpt_advice(issue):
         print(f"\n=== Starting GPT Request ===")
         print(f"Issue: {issue}")
         print(f"API Key status: {'Present' if OPENAI_API_KEY else 'Missing'}")
-        
+        print(f"API Key length: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
+
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
-            
-        # Make the API call
+
+        # Validate API key format
+        if not OPENAI_API_KEY.startswith('sk-'):
+            raise ValueError("Invalid API key format - should start with 'sk-'")
+
+        print(f"Calling OpenAI API with issue: {issue}")
+        print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
+
+        # Test the API connection first
+        print("Testing API connection...")
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a plumbing expert. Give very brief, practical advice."},
-                {"role": "user", "content": issue}
+                {"role": "system", "content": "You are a helpful plumbing assistant."},
+                {"role": "user", "content": f"What's a quick fix for this plumbing issue: {issue}"}
             ],
-            max_tokens=100,
-            temperature=0.5
+            max_tokens=150,
+            temperature=0.7
         )
-        
-        if not response.choices:
-            raise ValueError("No choices in response")
-            
-        content = response.choices[0].message.content
-        print(f"Success! Response: {content}")
+
+        # Access the response content correctly
+        content = response.choices[0].message.content if response.choices else "No response generated"
+        print(f"Got GPT response: {content}")
         return content
-        
-    except ValueError as ve:
-        print(f"Validation error: {str(ve)}")
-        return "Sorry, there was an issue with the API configuration. Please try again later."
     except Exception as e:
-        print(f"OpenAI API error: {str(e)}")
-        print(f"Error type: {type(e)}")
-        return "I couldn't generate advice right now. Please try again or wait for the plumber to contact you."
+        print(f"Detailed GPT error: {str(e)}")
+        print(f"API Key present: {'Yes' if openai.api_key else 'No'}")
+        return "I apologize, but I couldn't generate specific advice at the moment. Please try again."
 
 customer_states = {}  # Store customer interaction states
 
@@ -92,13 +94,13 @@ def handle_call():
 def handle_no_answer():
     dial_status = request.form.get("DialCallStatus")
     from_number = request.form.get("From")
-    
+
     response = VoiceResponse()
     print("\n=== Handling No Answer ===")
     print(f"Dial Status: {dial_status}")
     print(f"From Number: {from_number}")
     print(f"Request Form Data: {request.form}")
-    
+
     if dial_status != "answered":
         print("\n=== Sending Initial SMS ===")
         print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
@@ -118,7 +120,7 @@ def handle_no_answer():
             print(f"Error sending SMS: {str(e)}")
             print(f"TWILIO_PHONE_NUMBER: {TWILIO_PHONE_NUMBER}")
             print(f"Customer number: {from_number}")
-    
+
     response.hangup()
     return str(response)
 
@@ -136,38 +138,38 @@ def handle_sms():
     print(f"Request Method: {request.method}")
     print(f"Request Form: {request.form}")
     print(f"Request Headers: {request.headers}")
-    
+
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
-    
+
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
-    
+
     state = customer_states[from_number]
     print(f"\n=== Handling SMS ===")
     print(f"From: {from_number}")
     print(f"Message: {message_body}")
     print(f"Current state: {state}")
-    
+
     try:
         if state["stage"] == "waiting_for_name":
             state["name"] = message_body
             state["stage"] = "waiting_for_issue"
             response = "Thanks! Could you briefly describe your plumbing issue?"
-            
+
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
             state["stage"] = "waiting_for_consent"
-            
+
             # Send info to plumber
             plumber_message = client.messages.create(
                 body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
                 from_=TWILIO_PHONE_NUMBER,
                 to=FORWARD_TO_NUMBER
             )
-            
+
             response = "Would you like some immediate AI-powered advice about your issue? Reply YES or NO."
-            
+
         elif state["stage"] == "waiting_for_consent":
             if message_body.upper() == "YES":
                 advice = get_gpt_advice(state["issue"])
@@ -176,24 +178,24 @@ def handle_sms():
             else:
                 response = "Okay, no problem. Our plumber will contact you shortly."
                 del customer_states[from_number]
-                
+
         elif state["stage"] == "chatting":
             advice = get_gpt_advice(message_body)
             response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
             if message_body.upper() == "STOP":
                 response = "Thanks for chatting! Our plumber will be in touch soon."
                 del customer_states[from_number]
-        
+
         # Send response back to customer
         message = client.messages.create(
             body=response,
             from_=TWILIO_PHONE_NUMBER,
             to=from_number
         )
-        
+
     except Exception as e:
         print(f"Error in SMS handling: {str(e)}")
-        
+
     return Response("", status=200)
 
 if __name__ == "__main__":
