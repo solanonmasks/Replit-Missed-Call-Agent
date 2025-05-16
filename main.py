@@ -21,7 +21,7 @@ def home():
 def handle_call():
     response = VoiceResponse()
     dial = Dial(action="/handle-call-result", timeout=20)
-    dial.number("+16044423722")  # Number needs to be a string
+    dial.number(FORWARD_TO_NUMBER)  # Use environment variable
     response.append(dial)
     return Response(str(response), mimetype="text/xml")
 
