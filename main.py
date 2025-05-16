@@ -22,8 +22,20 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_
     print(f"FORWARD_NUMBER: {'Present' if FORWARD_TO_NUMBER else 'Missing'}")
 
 # Initialize OpenAI client with API key from environment
-openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
-print(f"OpenAI client initialized with API key starting with: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No OpenAI API key found!")
+try:
+    openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    # Test the client immediately
+    test_response = openai_client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": "Test message"}],
+        max_tokens=10
+    )
+    print("OpenAI client test successful!")
+    print(f"Test response: {test_response}")
+except Exception as e:
+    print(f"OpenAI initialization error: {str(e)}")
+    print(f"API key type: {type(OPENAI_API_KEY)}")
+    print(f"API key length: {len(OPENAI_API_KEY) if OPENAI_API_KEY else 0}")
 
 def format_phone_number(number):
     if not number:
