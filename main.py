@@ -39,6 +39,7 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 def get_gpt_advice(issue):
     try:
+        print(f"Calling OpenAI API with issue: {issue}")
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -46,10 +47,13 @@ def get_gpt_advice(issue):
                 {"role": "user", "content": f"What's the immediate solution for: {issue}"}
             ]
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        print(f"Got GPT response: {content}")
+        return content
     except Exception as e:
-        print(f"GPT error: {str(e)}")
-        return "I apologize, but I couldn't generate specific advice at the moment."
+        print(f"Detailed GPT error: {str(e)}")
+        print(f"API Key present: {'Yes' if openai.api_key else 'No'}")
+        return "I apologize, but I couldn't generate specific advice at the moment. Please try again."
 
 customer_states = {}  # Store customer interaction states
 
