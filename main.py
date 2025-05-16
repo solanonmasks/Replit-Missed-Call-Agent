@@ -260,7 +260,7 @@ def handle_sms():
         elif state["stage"] == "waiting_for_tips_request":
             if message_body.upper() == "TIPS":
                 advice = get_gpt_advice(state["issue"])
-                response = f"Here are some temporary tips that might help: {advice}\n\nOur plumber will still contact you shortly. Need more tips? Just ask!"
+                response = f"{advice}\n\nNeed more tips? Just ask!"
                 state["stage"] = "chatting"
             elif message_body.upper() == "STOP":
                 response = "No problem! Our plumber will be in touch soon."
