@@ -63,7 +63,7 @@ def handle_sms():
     # Then handle customer conversation
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
-        response = "Hi! Thanks for contacting us. What's your name?"
+        response = "Hi this is FloWrite Plumbing. Could you please tell us your name?"
         try:
             message = client.messages.create(
                 body=response,
@@ -95,8 +95,8 @@ def handle_sms():
 
             # Send confirmation to customer
             response = (
-                f"Thanks {state['name']}, we've received your request and our plumber will contact you soon.\n\n"
-                "Feel free to ask any questions while you wait! Type STOP to end the conversation."
+                f"Thanks {state['name']}, we've received your request and the plumber will contact you as soon as possible.\n\n"
+                "Feel free to ask any questions while you wait!"
             )
 
         elif state["stage"] == "chatting":
@@ -107,7 +107,7 @@ def handle_sms():
                 completion = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are a helpful plumbing assistant. Provide useful advice while customers wait for the plumber."},
+                        {"role": "system", "content": "You are FloWrite Plumbing's AI assistant. You specialize in providing helpful, accurate plumbing advice. Focus on common household plumbing issues, maintenance tips, and emergency guidance. Be professional but friendly, and always emphasize safety. If an issue sounds serious, remind them that a professional assessment is recommended."},
                         {"role": "user", "content": message_body}
                     ]
                 )
