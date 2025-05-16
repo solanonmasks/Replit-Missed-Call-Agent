@@ -297,9 +297,6 @@ def handle_sms():
 
     return Response("", status=200)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=81)
-
 import functools
 from flask import redirect, url_for, session, request, flash
 
@@ -363,3 +360,6 @@ def admin_dashboard():
     """
 
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key")  # Default for testing
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=81)
