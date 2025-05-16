@@ -88,23 +88,23 @@ def handle_call_result():
         if call_duration < 3:  # Less than 3 seconds is probably a missed call
             call_status = "no-answer"
 
-        if TWILIO_PHONE_NUMBER and from_number:
+        if TWILIO_PHONE_NUMBER and FORWARD_TO_NUMBER:
             try:
                 message_body = None
+                timestamp = request.form.get("Timestamp", "Unknown time")
+                
                 if call_status == "completed" and recording_url:
-                    message_body = "Hi! This is Mike from FlowRite Plumbing — sorry I missed your call. Can you text me what you're looking for? I'll get back to you ASAP."
-                elif call_status in ["no-answer", "busy", "failed"]:
-                    message_body = "Hi! This is Mike from FlowRite Plumbing — sorry I missed your call. Can you text me what you're looking for? I'll get back to you ASAP."
-                elif call_status == "completed":
-                    message_body = "Thanks for calling! We'll be happy to help you again."
+                    message_body = f"Missed call with voicemail from {from_number} at {timestamp}\nVoicemail: {recording_url}"
+                elif call_status in ["no-answer", "busy", "failed"] or call_duration < 3:
+                    message_body = f"Missed call from {from_number} at {timestamp}"
                 
                 if message_body:
                     message = client.messages.create(
                         body=message_body,
                         from_=TWILIO_PHONE_NUMBER,
-                        to=from_number
+                        to=FORWARD_TO_NUMBER  # Send to plumber instead of caller
                     )
-                    print(f"SMS sent successfully: {message.sid}")
+                    print(f"Notification sent to plumber: {message.sid}")
             except Exception as sms_error:
                 print(f"SMS sending failed: {str(sms_error)}")
         return Response("", status=200)
