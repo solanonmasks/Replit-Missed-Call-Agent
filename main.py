@@ -108,6 +108,10 @@ def handle_sms():
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
     
+    # Ignore automated responses
+    if "thanks for the message" in message_body.lower():
+        return Response("", status=200)
+    
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
     
