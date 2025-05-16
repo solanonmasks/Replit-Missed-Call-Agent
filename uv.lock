@@ -748,6 +748,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "flask" },
     { name = "openai" },
+    { name = "stripe" },
     { name = "twilio" },
 ]
 
@@ -755,6 +756,7 @@ dependencies = [
 requires-dist = [
     { name = "flask" },
     { name = "openai", specifier = ">=1.78.1" },
+    { name = "stripe", specifier = ">=12.1.0" },
     { name = "twilio" },
 ]
 
@@ -780,6 +782,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/87/a6771e1546d97e7e041b6ae58d80074f81b7d5121207425c964ddf5cfdbd/sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc", size = 20372 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/44/75a9c9421471a6c4805dbf2356f7c181a29c1879239abab1ea2cc8f38b40/sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2", size = 10235 },
+]
+
+[[package]]
+name = "stripe"
+version = "12.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/c4/4cbc0d81f44d0fd2a991b393597266347082a820df432c9f61df6cb0f80d/stripe-12.1.0.tar.gz", hash = "sha256:4a4b8516952cf5095e982257f0d47c45c1d2bbf7743e2cb12d6685f55da8b8d4", size = 1379855 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/4f/1efeebb7fdc8f1317821006f5830a56e9f030ffbf9369856a0ced16ee252/stripe-12.1.0-py2.py3-none-any.whl", hash = "sha256:1a3c9c0647c46da152efbd3b49f3494a32472b222857758e43df99759e790f29", size = 1622491 },
 ]
 
 [[package]]

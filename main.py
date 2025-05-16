@@ -330,9 +330,38 @@ def admin_login():
         </form>
     """
 
+import stripe
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+
+@app.route("/create-subscription", methods=["POST"])
+def create_subscription():
+    try:
+        # Create customer
+        customer = stripe.Customer.create(
+            email=request.form['email'],
+            source=request.form['stripeToken']
+        )
+        
+        # Create subscription with trial
+        subscription = stripe.Subscription.create(
+            customer=customer.id,
+            items=[{'price': os.environ.get('STRIPE_PRICE_ID')}],
+            trial_period_days=30
+        )
+        
+        return jsonify({'success': True, 'subscription': subscription.id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route("/admin", methods=["GET"])
 @admin_required
 def admin_dashboard():
+    # Get all subscriptions
+    try:
+        subscriptions = stripe.Subscription.list(limit=100)
+    except:
+        subscriptions = []
+        
     stats = {number: {
         "business": config["business_name"],
         "active_chats": len([k for k,v in customer_states.items() 
@@ -349,7 +378,9 @@ def admin_dashboard():
         .stats {{ padding: 20px; background: #f5f5f5; border-radius: 5px; }}
         .actions {{ margin-top: 20px; }}
         button {{ padding: 10px; margin: 5px; }}
+        .subscription-form {{ margin: 20px 0; padding: 20px; background: #fff; }}
     </style>
+    <script src="https://js.stripe.com/v3/"></script>
     <div class="stats">
         <pre>{json.dumps(stats, indent=2)}</pre>
     </div>

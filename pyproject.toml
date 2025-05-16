@@ -7,5 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "flask",
     "openai>=1.78.1",
+    "stripe>=12.1.0",
     "twilio",
 ]
