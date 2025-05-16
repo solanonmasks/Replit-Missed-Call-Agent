@@ -11,12 +11,15 @@ class TwilioService:
 
     def make_call(self, to_number, from_number):
         try:
+            if not self.client.account_sid or not self.client.auth_token:
+                raise Exception("Twilio credentials not configured")
+                
             call = self.client.calls.create(
                 to=to_number,
                 from_=from_number,
-                url='http://demo.twilio.com/docs/voice.xml'
+                url='http://demo.twilio.com/docs/voice.xml',
+                twiml='<Response><Say>Hello from Twilio</Say></Response>'
             )
             return call.sid
         except Exception as e:
-            print(f"Error making call: {str(e)}")
-            return None
+            raise Exception(f"Error making Twilio call: {str(e)}")

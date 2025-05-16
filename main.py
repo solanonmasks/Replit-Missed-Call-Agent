@@ -56,16 +56,21 @@ def home():
 @app.route("/handle-call", methods=["POST"])
 def make_call():
     try:
-        to_number = "+15555555555"  # Default test number
+        if not Config.TWILIO_ACCOUNT_SID or not Config.TWILIO_AUTH_TOKEN:
+            return jsonify({"error": "Twilio credentials not configured"}), 500
+            
+        if not Config.TWILIO_FROM_NUMBER:
+            return jsonify({"error": "Twilio FROM number not configured"}), 500
+            
+        to_number = request.json.get('to_number') if request.json else "+15555555555"
         from_number = Config.TWILIO_FROM_NUMBER
         
         call_sid = twilio_service.make_call(to_number, from_number)
-        if call_sid:
-            return jsonify({"status": "success", "call_sid": call_sid})
-        return jsonify({"error": "Call failed"}), 500
+        return jsonify({"status": "success", "call_sid": call_sid})
     except Exception as e:
-        logger.error(f"Call error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        error_msg = str(e)
+        logger.error(f"Call error: {error_msg}")
+        return jsonify({"error": error_msg}), 500
 
 @app.route("/chat", methods=["POST"])
 @handle_errors
