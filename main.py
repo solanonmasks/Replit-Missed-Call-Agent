@@ -297,11 +297,18 @@ def handle_sms():
             )
 
         elif state["stage"] == "chatting":
-            advice = get_gpt_advice(message_body, state)
-            response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
-            if message_body.upper() == "STOP":
-                response = "Thanks for chatting! Our plumber will be in touch soon."
-                del customer_states[from_number]
+            try:
+                print(f"\n=== Getting GPT Advice ===")
+                advice = get_gpt_advice(message_body, state)
+                print(f"GPT Response: {advice}")
+                
+                response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
+                if message_body.upper() == "STOP":
+                    response = "Thanks for chatting! Our plumber will be in touch soon."
+                    del customer_states[from_number]
+            except Exception as e:
+                print(f"Error getting GPT advice: {str(e)}")
+                response = "I apologize, but I'm having trouble processing your message. Our plumber will contact you soon."
 
         # Send response back to customer
         message = client.messages.create(
