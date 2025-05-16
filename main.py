@@ -20,11 +20,11 @@ BUSINESS_CONFIG = {
 }
 
 # Default credentials for testing
-TWILIO_ACCOUNT_SID = PLUMBER_CONFIG[list(PLUMBER_CONFIG.keys())[0]]["twilio_sid"]
-TWILIO_AUTH_TOKEN = PLUMBER_CONFIG[list(PLUMBER_CONFIG.keys())[0]]["twilio_token"]
-TWILIO_PHONE_NUMBER = list(PLUMBER_CONFIG.keys())[0]
-FORWARD_TO_NUMBER = PLUMBER_CONFIG[TWILIO_PHONE_NUMBER]["forward_to"]
-OPENAI_API_KEY = PLUMBER_CONFIG[TWILIO_PHONE_NUMBER]["openai_key"]
+TWILIO_ACCOUNT_SID = BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]]["twilio_sid"]
+TWILIO_AUTH_TOKEN = BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]]["twilio_token"]
+TWILIO_PHONE_NUMBER = list(BUSINESS_CONFIG.keys())[0]
+FORWARD_TO_NUMBER = BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]["forward_to"]
+OPENAI_API_KEY = BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]["openai_key"]
 
 # Verify credentials
 if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_TO_NUMBER]):
@@ -340,7 +340,7 @@ def admin_dashboard():
         "total_conversations": len(customer_states),
         "active_conversations": len([k for k,v in customer_states.items() 
                                    if v.get("stage") == "chatting"])
-    } for number, config in PLUMBER_CONFIG.items()}
+    } for number, config in BUSINESS_CONFIG.items()}
     
     return f"""
     <h1>Plumber Management Dashboard</h1>
