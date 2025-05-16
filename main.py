@@ -173,7 +173,7 @@ def handle_sms():
 
         elif state["stage"] == "waiting_for_issue":
             state["issue"] = message_body
-            state["stage"] = "waiting_for_consent"
+            state["stage"] = "issue_received"
 
             # Send info to plumber
             plumber_message = client.messages.create(
@@ -182,16 +182,23 @@ def handle_sms():
                 to=FORWARD_TO_NUMBER
             )
 
-            response = "Would you like some immediate AI-powered advice about your issue? Reply YES or NO."
+            response = (
+                f"Thanks {state['name']}, we've received your request and our plumber will contact you as soon as possible. "
+                "If you'd like some immediate DIY tips while you wait, just reply TIPS. "
+                "Otherwise, we'll be in touch shortly!"
+            )
+            state["stage"] = "waiting_for_tips_request"
 
-        elif state["stage"] == "waiting_for_consent":
-            if message_body.upper() == "YES":
+        elif state["stage"] == "waiting_for_tips_request":
+            if message_body.upper() == "TIPS":
                 advice = get_gpt_advice(state["issue"])
-                response = f"Here's some immediate advice: {advice}\n\nOur plumber will contact you shortly. Need more help? Just ask!"
+                response = f"Here are some temporary tips that might help: {advice}\n\nOur plumber will still contact you shortly. Need more tips? Just ask!"
                 state["stage"] = "chatting"
-            else:
-                response = "Okay, no problem. Our plumber will contact you shortly."
+            elif message_body.upper() == "STOP":
+                response = "No problem! Our plumber will be in touch soon."
                 del customer_states[from_number]
+            else:
+                response = "Our plumber will be in touch soon. If you'd like some DIY tips while you wait, just reply TIPS."
 
         elif state["stage"] == "chatting":
             advice = get_gpt_advice(message_body)
