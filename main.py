@@ -249,6 +249,10 @@ def handle_sms():
     print(f"Request Method: {request.method}")
     print(f"Request Form: {request.form}")
     print(f"Request Headers: {request.headers}")
+    
+    # More detailed logging
+    print("\n=== Current Customer States ===")
+    print(customer_states)
 
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
