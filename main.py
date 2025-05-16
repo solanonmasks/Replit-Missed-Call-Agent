@@ -243,14 +243,15 @@ def handle_sms():
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
 
-    state = customer_states[from_number]
+    state = customer_states.get(from_number, {"stage": "waiting_for_name"})
     print(f"\n=== Handling SMS ===")
     print(f"From: {from_number}")
     print(f"Message: {message_body}")
     print(f"Current state: {state}")
 
     try:
-        if state["stage"] == "waiting_for_name":
+        stage = state.get("stage", "waiting_for_name")
+        if stage == "waiting_for_name":
             # Clean and validate the name
             cleaned_name = message_body.strip()
             if len(cleaned_name) < 2 or len(cleaned_name) > 30:
