@@ -178,68 +178,14 @@ def home():
     return """
     <html>
     <head>
-        <title>Plumbing Business Management - Subscribe</title>
-        <script src="https://js.stripe.com/v3/"></script>
-        <script data-key="{{ os.environ.get('STRIPE_PUBLISHABLE_KEY') }}">
-        </script>
+        <title>Plumbing Business Management</title>
         <style>
             body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
-            .form-group { margin: 20px 0; }
-            input { width: 100%; padding: 8px; margin: 8px 0; }
-            button { background: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer; }
-            .error { color: red; }
         </style>
     </head>
     <body>
-        <h1>Start Your 30-Day Free Trial</h1>
-        <p>$55/month after trial - Cancel anytime</p>
-
-        <form id="payment-form">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="email" required>
-            </div>
-
-            <div class="form-group">
-                <label>Card Information</label>
-                <div id="card-element"></div>
-                <div id="card-errors" class="error"></div>
-            </div>
-
-            <button type="submit">Start Free Trial</button>
-        </form>
-
-        <script>
-            const stripe = Stripe('{os.environ.get("STRIPE_PUBLISHABLE_KEY")}');
-            const elements = stripe.elements();
-            const card = elements.create('card');
-            card.mount('#card-element');
-
-            const form = document.getElementById('payment-form');
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const email = document.getElementById('email').value;
-
-                const {token, error} = await stripe.createToken(card);
-                if (error) {
-                    document.getElementById('card-errors').textContent = error.message;
-                    return;
-                }
-
-                const response = await fetch('/create-subscription', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `stripeToken=${token.id}&email=${email}`
-                });
-
-                const result = await response.json();
-                if (result.error) {
-                    document.getElementById('card-errors').textContent = result.error;
-                } else {
-                    window.location.href = '/success';
-                }
-            });
-        </script>
+        <h1>Plumbing Business Management</h1>
+        <p>Welcome to our plumbing management system.</p>
     </body>
     </html>
     """
@@ -397,28 +343,7 @@ def admin_login():
         </form>
     """
 
-import stripe
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 
-@app.route("/create-subscription", methods=["POST"])
-def create_subscription():
-    try:
-        # Create customer
-        customer = stripe.Customer.create(
-            email=request.form['email'],
-            source=request.form['stripeToken']
-        )
-
-        # Create subscription with trial
-        subscription = stripe.Subscription.create(
-            customer=customer.id,
-            items=[{'price': os.environ.get('STRIPE_PRICE_ID')}],
-            trial_period_days=30
-        )
-
-        return jsonify({'success': True, 'subscription': subscription.id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
 
 @app.route("/admin", methods=["GET"])
 @admin_required
