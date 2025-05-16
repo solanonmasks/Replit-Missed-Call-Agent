@@ -6,12 +6,24 @@ import openai
 
 app = Flask(__name__)
 
-# Twilio credentials
-TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
-FORWARD_TO_NUMBER = os.environ.get("FORWARD_TO_NUMBER")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+# Multi-plumber configuration
+PLUMBER_CONFIG = {
+    "+17786535845": {  # Twilio number as key
+        "forward_to": "+16044423722",
+        "business_name": "FlowRite Plumbing",
+        "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID"),
+        "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN"),
+        "openai_key": os.environ.get("OPENAI_API_KEY")
+    }
+    # Add more plumbers here
+}
+
+# Default credentials for testing
+TWILIO_ACCOUNT_SID = PLUMBER_CONFIG[list(PLUMBER_CONFIG.keys())[0]]["twilio_sid"]
+TWILIO_AUTH_TOKEN = PLUMBER_CONFIG[list(PLUMBER_CONFIG.keys())[0]]["twilio_token"]
+TWILIO_PHONE_NUMBER = list(PLUMBER_CONFIG.keys())[0]
+FORWARD_TO_NUMBER = PLUMBER_CONFIG[TWILIO_PHONE_NUMBER]["forward_to"]
+OPENAI_API_KEY = PLUMBER_CONFIG[TWILIO_PHONE_NUMBER]["openai_key"]
 
 # Verify credentials
 if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_TO_NUMBER]):
@@ -278,3 +290,17 @@ def handle_sms():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=81)
+
+@app.route("/admin", methods=["GET"])
+def admin_dashboard():
+    stats = {number: {
+        "business": config["business_name"],
+        "active_chats": len([k for k,v in customer_states.items() 
+                           if v.get("plumber_number") == number]),
+        "forward_to": config["forward_to"]
+    } for number, config in PLUMBER_CONFIG.items()}
+    
+    return f"""
+    <h1>Plumber Management Dashboard</h1>
+    <pre>{json.dumps(stats, indent=2)}</pre>
+    """
