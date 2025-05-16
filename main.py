@@ -195,7 +195,7 @@ def handle_no_answer():
     print(f"From Number: {from_number}")
     print(f"Request Form Data: {request.form}")
 
-    if dial_status != "answered":
+    if dial_status == "no-answer" or dial_status == "busy" or dial_status == "failed":
         print("\n=== Sending Initial SMS ===")
         print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
         print(f"To (Customer): {from_number}")
