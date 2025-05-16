@@ -76,11 +76,17 @@ def handle_call_result():
         call_status = request.form.get("DialCallStatus")
         from_number = request.form.get("From")
         recording_url = request.form.get("RecordingUrl")
+        call_duration = int(request.form.get("DialCallDuration", "0"))
         
         print(f"Call Status: {call_status}")
         print(f"From Number: {from_number}")
         print(f"Recording URL: {recording_url}")
+        print(f"Call Duration: {call_duration} seconds")
         print(f"Twilio Phone: {TWILIO_PHONE_NUMBER}")
+
+        # Consider it a missed call if duration is 0
+        if call_duration == 0:
+            call_status = "no-answer"
 
         if TWILIO_PHONE_NUMBER and from_number:
             try:
