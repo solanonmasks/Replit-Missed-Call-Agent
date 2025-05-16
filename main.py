@@ -154,11 +154,11 @@ def get_gpt_advice(message, state=None):
 
         response = openai_client.chat.completions.create(
             model="gpt-4-turbo-preview",
-            messages=messages,
-            max_tokens=1000,
-            temperature=0.9,
-            presence_penalty=0.7,
-            frequency_penalty=0.7,
+            messages=messages + [{"role": "system", "content": "Keep responses clear and focused. Break up long explanations into digestible chunks."}],
+            max_tokens=300,
+            temperature=0.7,
+            presence_penalty=0.6,
+            frequency_penalty=0.6,
             top_p=1
         )
 
