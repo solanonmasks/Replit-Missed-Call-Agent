@@ -6,9 +6,22 @@ from services.twilio_service import TwilioService
 from services.openai_service import OpenAIService
 from utils.error_handler import handle_errors
 from utils.rate_limit import rate_limit
+from utils.validation import validate_request
 import logging
+from time import time
 
 app = Flask(__name__)
+
+@app.before_request
+def log_request():
+    request.start_time = time()
+    logger.info(f"Incoming {request.method} request to {request.path}")
+
+@app.after_request
+def log_response(response):
+    duration = time() - request.start_time
+    logger.info(f"Request completed in {duration:.2f}s with status {response.status_code}")
+    return response
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
 
@@ -34,9 +47,9 @@ def home():
 @app.route("/call", methods=["POST"])
 @handle_errors
 @rate_limit
+@validate_request('to_number', 'from_number')
 def make_call():
     data = request.json
-    if not data or not data.get('to_number') or not data.get('from_number'):
         return jsonify({"error": "Missing required parameters"}), 400
     
     logger.info(f"Making call to {data.get('to_number')}")
@@ -49,9 +62,9 @@ def make_call():
 @app.route("/chat", methods=["POST"])
 @handle_errors
 @rate_limit
+@validate_request('prompt')
 def chat():
     data = request.json
-    if not data or not data.get('prompt'):
         return jsonify({"error": "Missing prompt parameter"}), 400
         
     logger.info("Generating chat response")
