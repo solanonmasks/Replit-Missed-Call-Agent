@@ -53,7 +53,7 @@ def home():
     stats_tracker.record_call('home')
     return "Server is live!"
 
-@app.route("/call", methods=["POST"])
+@app.route("/handle-call", methods=["POST"])
 @handle_errors
 @rate_limit
 @validate_request('to_number', 'from_number')
