@@ -86,4 +86,8 @@ def handle_call():
     return str(response)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    try:
+        app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'default-dev-key')
+        app.run(host='0.0.0.0', port=5000, debug=True)
+    except Exception as e:
+        print(f"Application error: {str(e)}")
