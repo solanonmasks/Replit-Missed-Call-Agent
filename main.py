@@ -43,14 +43,21 @@ def get_gpt_advice(issue):
     try:
         print(f"Calling OpenAI API with issue: {issue}")
         print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
+        
+        # Test the API connection first
+        print("Testing API connection...")
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a helpful plumbing assistant. Provide brief, practical advice for common plumbing issues."},
-                {"role": "user", "content": f"What's the immediate solution for: {issue}"}
-            ]
+                {"role": "system", "content": "You are a helpful plumbing assistant."},
+                {"role": "user", "content": f"What's a quick fix for this plumbing issue: {issue}"}
+            ],
+            max_tokens=150,
+            temperature=0.7
         )
-        content = response.choices[0].message.content
+        
+        # Access the response content correctly
+        content = response.choices[0].message.content if response.choices else "No response generated"
         print(f"Got GPT response: {content}")
         return content
     except Exception as e:
