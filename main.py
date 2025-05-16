@@ -11,7 +11,15 @@ from utils.cache import cached
 import logging
 from time import time
 
+from flask import Flask, request, Response, json, session, jsonify, render_template, make_response
 app = Flask(__name__)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @app.before_request
 def log_request():
