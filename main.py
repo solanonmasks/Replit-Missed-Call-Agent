@@ -136,20 +136,28 @@ def get_gpt_advice(message, state=None):
                 state["conversation_history"] = []
             state["conversation_history"].append(current_message)
             
-            # Limit conversation history to last 10 messages to maintain context without overflow
-            if len(state["conversation_history"]) > 10:
-                state["conversation_history"] = state["conversation_history"][-10:]
+            # Maintain full conversation context with structured history
+            if len(state["conversation_history"]) > 20:
+                # Keep first 5 messages (context setting) and last 15 messages (recent context)
+                state["conversation_history"] = (
+                    state["conversation_history"][:5] + 
+                    state["conversation_history"][-15:]
+                )
+            
+            # Add conversation markers for better context awareness
+            if len(state["conversation_history"]) > 1:
+                current_message["content"] = f"Previous context: {state['conversation_history'][-1]['content']}\nNew message: {message}"
         else:
             messages.append({"role": "user", "content": message})
 
         response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4-turbo-preview",
             messages=messages,
-            max_tokens=800,
-            temperature=0.7,
-            presence_penalty=0.8,
-            frequency_penalty=0.8,
-            top_p=0.95
+            max_tokens=1000,
+            temperature=0.9,
+            presence_penalty=0.7,
+            frequency_penalty=0.7,
+            top_p=1
         )
 
         # Access the response content correctly
