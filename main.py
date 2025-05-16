@@ -141,7 +141,7 @@ def call_status():
     if status in ['no-answer', 'busy', 'failed'] or (status == 'completed' and duration and int(duration) < 10):
         try:
             client.messages.create(
-                body="Sorry we missed your call! Please text us your name and we'll help you with your plumbing issue.",
+                body="Hi this is FloWrite Plumbing. Could you please tell us your name?",
                 from_=TWILIO_PHONE_NUMBER,
                 to=caller
             )
