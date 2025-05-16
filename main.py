@@ -47,20 +47,18 @@ def handle_sms():
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
     
-    # Send message directly to plumber
-    try:
-        message = client.messages.create(
-            body=f"New message from {from_number}:\n{message_body}",
-            from_=TWILIO_PHONE_NUMBER,
-            to=FORWARD_TO_NUMBER
-        )
-        return Response("", status=200)
-    except Exception as e:
-        print(f"Error sending SMS: {str(e)}")
-        return Response("Error", status=500)
-
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
+        response = "Hi! Thanks for contacting us. What's your name?"
+        try:
+            message = client.messages.create(
+                body=response,
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+        except Exception as e:
+            print(f"Error sending SMS: {str(e)}")
+        return Response("", status=200)
 
     state = customer_states[from_number]
 
