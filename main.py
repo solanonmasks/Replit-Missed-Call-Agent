@@ -1,5 +1,6 @@
 
-from flask import Flask, request, Response, json, session, jsonify
+from flask import Flask, request, Response, json, session, jsonify, render_template
+from routes.admin import admin_bp
 from config import Config
 from services.twilio_service import TwilioService
 from services.openai_service import OpenAIService
@@ -9,6 +10,8 @@ import logging
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
+
+app.register_blueprint(admin_bp)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
