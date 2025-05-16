@@ -1,6 +1,7 @@
+
 from flask import Flask, request, Response
 from twilio.rest import Client
-from twilio.twiml.voice_response import VoiceResponse, Dial, Gather
+from twilio.twiml.voice_response import VoiceResponse
 import os
 import openai
 
@@ -42,6 +43,8 @@ def get_gpt_advice(issue):
         print(f"GPT error: {str(e)}")
         return "I apologize, but I couldn't generate specific advice at the moment."
 
+customer_states = {}  # Store customer interaction states
+
 @app.route("/", methods=["GET"])
 def home():
     return "Server is live!"
@@ -49,54 +52,71 @@ def home():
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
     response = VoiceResponse()
-    response.say("Welcome to FlowRite Plumbing. Please tell us your name after the beep.")
-    response.gather(
-        input='speech',
-        action='/handle-name',
-        method='POST',
-        timeout=5,
-        speechTimeout='auto'
-    )
-    return Response(str(response), mimetype='text/xml')
+    response.say("Sorry, we couldn't take your call. We'll send you a text message shortly to collect more information.")
+    response.hangup()
+    return str(response)
 
-@app.route("/handle-name", methods=["POST"])
-def handle_name():
-    name = request.form.get("SpeechResult", "").strip()
-    response = VoiceResponse()
+@app.route("/status", methods=["POST"])
+def handle_status():
+    call_status = request.form.get("CallStatus")
+    from_number = request.form.get("From")
+    
+    if call_status == "completed":
+        # Send initial SMS
+        try:
+            message = client.messages.create(
+                body="Hi! This is FlowRite Plumbing. Could you please tell us your name?",
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+            customer_states[from_number] = {"stage": "waiting_for_name"}
+        except Exception as e:
+            print(f"Error sending SMS: {str(e)}")
+    
+    return Response("", status=200)
 
-    gather = Gather(input='speech', action='/handle-issue', method='POST', timeout=10, speechTimeout='auto')
-    gather.say(f"Hi {name}, please briefly describe your plumbing issue.")
-    response.append(gather)
-
-    # Store name in session
-    response.set_cookie('customer_name', name)
-    return Response(str(response), mimetype='text/xml')
-
-@app.route("/handle-issue", methods=["POST"])
-def handle_issue():
-    issue = request.form.get("SpeechResult", "").strip()
-    name = request.cookies.get('customer_name', 'Customer')
-
-    # Get GPT advice
-    advice = get_gpt_advice(issue)
-
-    response = VoiceResponse()
-    response.say(f"Thank you for explaining. Here's some immediate advice: {advice}")
-    response.say("I'll now send your information to our plumber who will contact you shortly.")
-
-    # Send info to plumber
+@app.route("/sms", methods=["POST"])
+def handle_sms():
+    from_number = request.form.get("From")
+    message_body = request.form.get("Body", "").strip()
+    
+    if from_number not in customer_states:
+        customer_states[from_number] = {"stage": "waiting_for_name"}
+    
+    state = customer_states[from_number]
+    
     try:
-        from_number = request.form.get("From")
+        if state["stage"] == "waiting_for_name":
+            state["name"] = message_body
+            state["stage"] = "waiting_for_issue"
+            response = "Thanks! Could you briefly describe your plumbing issue?"
+            
+        elif state["stage"] == "waiting_for_issue":
+            state["issue"] = message_body
+            advice = get_gpt_advice(message_body)
+            
+            # Send info to plumber
+            plumber_message = client.messages.create(
+                body=f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}",
+                from_=TWILIO_PHONE_NUMBER,
+                to=FORWARD_TO_NUMBER
+            )
+            
+            # Send advice to customer
+            response = f"Thanks for providing the details! Here's some immediate advice: {advice}\n\nOur plumber will contact you shortly."
+            del customer_states[from_number]  # Clear the state
+        
+        # Send response back to customer
         message = client.messages.create(
-            body=f"New plumbing request:\nName: {name}\nPhone: {from_number}\nIssue: {issue}\nAI Advice Given: {advice}",
+            body=response,
             from_=TWILIO_PHONE_NUMBER,
-            to=FORWARD_TO_NUMBER
+            to=from_number
         )
-        print(f"Message sent to plumber: {message.sid}")
+        
     except Exception as e:
-        print(f"Error sending message: {str(e)}")
-
-    return Response(str(response), mimetype='text/xml')
+        print(f"Error in SMS handling: {str(e)}")
+        
+    return Response("", status=200)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=81)
