@@ -73,16 +73,12 @@ def get_gpt_advice(message, state=None):
 
         # Build conversation history with enhanced context and capabilities
         messages = [
-            {"role": "system", "content": f"""You are a friendly, experienced {BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]['business_type']} having a natural conversation. You represent a premium, trusted local service. Speak casually but professionally, like you're talking to a valued neighbor. Your key traits:
+            {"role": "system", "content": f"""You are a friendly, experienced {BUSINESS_CONFIG[TWILIO_PHONE_NUMBER]['business_type']} having a natural conversation. Speak casually but professionally, like you're talking to a neighbor. Your key traits:
 
-            1. Emphasize our expertise and local presence
-            2. Highlight the value of proper professional repair
-            3. Give practical temporary solutions while building trust
+            1. Never ask about information already provided
+            2. Focus on being helpful, not gathering more details
+            3. Give practical advice in everyday language
             4. If something is dangerous, be direct about it
-            5. Subtly mention our track record of solving similar issues
-            6. Use phrases like "while our licensed plumber is on the way" to reinforce the commitment
-            7. Share brief success stories like "Just last week, we helped a neighbor with a similar issue"
-            8. Validate their concerns while reassuring them about the wait
 
             When responding:
             - Use natural phrases like "I hear you" or "That's definitely frustrating"
@@ -276,8 +272,8 @@ def handle_sms():
             # First send acknowledgment and offer help
             response = (
                 f"Thanks {state['name']}, I understand you're having an issue with {state['issue']}. "
-                f"Our licensed plumber has been notified and will contact you very soon - they're known for their quick response times.\n\n"
-                "While they're preparing to help with a permanent solution, would you like some professional advice to help manage the situation?"
+                f"Our plumber will contact you soon.\n\n"
+                "Would you like some help or advice while you wait?"
             )
             
             # Send this first message
