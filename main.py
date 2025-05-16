@@ -67,7 +67,7 @@ def get_gpt_advice(message, state=None):
     try:
         print(f"\n=== Starting GPT Request ===")
         print(f"Message: {message}")
-        
+
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
 
@@ -125,19 +125,19 @@ def get_gpt_advice(message, state=None):
                 messages.extend(state["conversation_history"])
             else:
                 state["conversation_history"] = []
-            
+
             # Add current message with better context tracking
             current_message = {
                 "role": "user",
                 "content": message
             }
             messages.append(current_message)
-            
+
             # Store both user messages and assistant responses
             if "conversation_history" not in state:
                 state["conversation_history"] = []
             state["conversation_history"].append(current_message)
-            
+
             # Maintain full conversation context with structured history
             if len(state["conversation_history"]) > 20:
                 # Keep first 5 messages (context setting) and last 15 messages (recent context)
@@ -145,7 +145,7 @@ def get_gpt_advice(message, state=None):
                     state["conversation_history"][:5] + 
                     state["conversation_history"][-15:]
                 )
-            
+
             # Add conversation markers for better context awareness
             if len(state["conversation_history"]) > 1:
                 current_message["content"] = f"Previous context: {state['conversation_history'][-1]['content']}\nNew message: {message}"
@@ -180,6 +180,8 @@ def home():
     <head>
         <title>Plumbing Business Management - Subscribe</title>
         <script src="https://js.stripe.com/v3/"></script>
+        <script data-key="{{ os.environ.get('STRIPE_PUBLISHABLE_KEY') }}">
+        </script>
         <style>
             body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
             .form-group { margin: 20px 0; }
@@ -191,19 +193,19 @@ def home():
     <body>
         <h1>Start Your 30-Day Free Trial</h1>
         <p>$55/month after trial - Cancel anytime</p>
-        
+
         <form id="payment-form">
             <div class="form-group">
                 <label>Email</label>
                 <input type="email" id="email" required>
             </div>
-            
+
             <div class="form-group">
                 <label>Card Information</label>
                 <div id="card-element"></div>
                 <div id="card-errors" class="error"></div>
             </div>
-            
+
             <button type="submit">Start Free Trial</button>
         </form>
 
@@ -263,7 +265,7 @@ def handle_no_answer():
 
     call_status = request.form.get("CallStatus")
     dial_duration = int(request.form.get("DialCallDuration", "0"))
-    
+
     if dial_status != "answered" or (call_status == "completed" and dial_duration < 10):
         print("\n=== Sending Initial SMS ===")
         print(f"From (Twilio): {TWILIO_PHONE_NUMBER}")
@@ -386,7 +388,7 @@ def admin_login():
             session['admin_logged_in'] = True
             return redirect(url_for('admin_dashboard'))
         return "Invalid password"
-    
+
     return """
         <form method="post">
             <h2>Admin Login</h2>
@@ -406,14 +408,14 @@ def create_subscription():
             email=request.form['email'],
             source=request.form['stripeToken']
         )
-        
+
         # Create subscription with trial
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{'price': os.environ.get('STRIPE_PRICE_ID')}],
             trial_period_days=30
         )
-        
+
         return jsonify({'success': True, 'subscription': subscription.id})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -426,7 +428,7 @@ def admin_dashboard():
         subscriptions = stripe.Subscription.list(limit=100)
     except:
         subscriptions = []
-        
+
     stats = {number: {
         "business": config["business_name"],
         "active_chats": len([k for k,v in customer_states.items() 
@@ -436,7 +438,7 @@ def admin_dashboard():
         "active_conversations": len([k for k,v in customer_states.items() 
                                    if v.get("stage") == "chatting"])
     } for number, config in BUSINESS_CONFIG.items()}
-    
+
     return f"""
     <h1>Plumber Management Dashboard</h1>
     <style>
