@@ -63,9 +63,12 @@ def handle_no_answer():
     from_number = request.form.get("From")
     
     response = VoiceResponse()
+    print(f"handle_no_answer called with status: {dial_status}")
     if dial_status in ["no-answer", "busy", "failed"]:
         print(f"Call not answered. Status: {dial_status}")
-        print(f"Attempting to send SMS to: {from_number} from {TWILIO_PHONE_NUMBER}")
+        print(f"Customer number: {from_number}")
+        print(f"Twilio number: {TWILIO_PHONE_NUMBER}")
+        print(f"Plumber number: {FORWARD_TO_NUMBER}")
         response.say("Sorry, we couldn't reach our plumber. We'll send you a text message shortly to collect more information.")
         # Send initial SMS
         try:
