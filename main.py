@@ -25,6 +25,8 @@ customer_states = {}  # Store customer interaction states
 
 @app.route("/sms", methods=["POST"])
 def handle_sms():
+    print("Incoming SMS webhook received")
+    print("Request form data:", request.form)
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
 
