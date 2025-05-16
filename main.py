@@ -154,7 +154,14 @@ def home():
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
     response = VoiceResponse()
-    # Try to forward to plumber first
+    # Get business info from incoming number
+    to_number = request.form.get('To')
+    business_config = BUSINESS_CONFIG.get(to_number, BUSINESS_CONFIG[TWILIO_PHONE_NUMBER])
+    
+    # Play custom greeting
+    response.say(f"Thank you for calling {business_config['business_name']}. Please hold while we connect you with one of our specialists.")
+    
+    # Try to forward to plumber
     dial = response.dial(timeout=15, action='/handle-no-answer')
     dial.number(FORWARD_TO_NUMBER)
     return str(response)
