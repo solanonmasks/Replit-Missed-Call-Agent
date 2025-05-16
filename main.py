@@ -28,16 +28,20 @@ def handle_call():
 
 @app.route("/handle-call-result", methods=["POST"])
 def handle_call_result():
-    call_status = request.form.get("DialCallStatus")
-    from_number = request.form.get("From")
+    try:
+        call_status = request.form.get("DialCallStatus")
+        from_number = request.form.get("From")
 
-    if call_status in ["no-answer", "busy", "failed"]:
-        client.messages.create(
-            body="Hey! Sorry we missed your call. What can we help you with?",
-            from_=TWILIO_PHONE_NUMBER,
-            to=from_number
-        )
-    return Response("", status=200)
+        if call_status in ["no-answer", "busy", "failed"] and TWILIO_PHONE_NUMBER and from_number:
+            client.messages.create(
+                body="Hey! Sorry we missed your call. What can we help you with?",
+                from_=TWILIO_PHONE_NUMBER,
+                to=from_number
+            )
+        return Response("", status=200)
+    except Exception as e:
+        print(f"Error in handle_call_result: {str(e)}")
+        return Response("", status=200)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=81)
