@@ -52,16 +52,19 @@ def home():
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
     response = VoiceResponse()
-    response.say("Sorry, we couldn't take your call. We'll send you a text message shortly to collect more information.")
-    response.hangup()
+    # Try to forward to plumber first
+    dial = response.dial(timeout=15, action='/handle-no-answer')
+    dial.number(FORWARD_TO_NUMBER)
     return str(response)
 
-@app.route("/status", methods=["POST"])
-def handle_status():
-    call_status = request.form.get("CallStatus")
+@app.route("/handle-no-answer", methods=["POST"])
+def handle_no_answer():
+    dial_status = request.form.get("DialCallStatus")
     from_number = request.form.get("From")
     
-    if call_status == "completed":
+    response = VoiceResponse()
+    if dial_status in ["no-answer", "busy", "failed"]:
+        response.say("Sorry, we couldn't reach our plumber. We'll send you a text message shortly to collect more information.")
         # Send initial SMS
         try:
             message = client.messages.create(
@@ -73,6 +76,11 @@ def handle_status():
         except Exception as e:
             print(f"Error sending SMS: {str(e)}")
     
+    response.hangup()
+    return str(response)
+
+@app.route("/status", methods=["POST"])
+def handle_status():
     return Response("", status=200)
 
 @app.route("/sms", methods=["POST"])
