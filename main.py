@@ -50,34 +50,34 @@ FORWARD_TO_NUMBER = format_phone_number(FORWARD_TO_NUMBER)
 
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-def get_gpt_advice(issue):
+def get_gpt_advice(message, state=None):
     try:
         print(f"\n=== Starting GPT Request ===")
-        print(f"Issue: {issue}")
+        print(f"Message: {message}")
         
-        # Validate API key
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
-        
-        print(f"API Key first 5 chars: {OPENAI_API_KEY[:5]}")
-        print(f"API Key length: {len(OPENAI_API_KEY)}")
-        
-        # Standard OpenAI key format check
-        if not OPENAI_API_KEY.startswith('sk-') or len(OPENAI_API_KEY) < 40:
-            raise ValueError(f"Invalid API key format. Key should start with 'sk-' and be at least 40 characters.")
 
-        print(f"Calling OpenAI API with issue: {issue}")
-        print(f"Using API key: {OPENAI_API_KEY[:5]}..." if OPENAI_API_KEY else "No API key!")
+        # Build conversation history
+        messages = [
+            {"role": "system", "content": """You are an experienced plumbing assistant. Provide accurate, helpful advice about plumbing issues.
+            When discussing costs, give reasonable estimates based on typical market rates.
+            Keep track of the conversation context and previous issues mentioned.
+            If asked about costs, include both DIY fix costs and professional service estimates."""},
+        ]
 
-        # Test the API connection first
-        print("Testing API connection...")
+        # Add context from previous issue if available
+        if state and "issue" in state:
+            messages.append({"role": "user", "content": f"My issue is: {state['issue']}"})
+            messages.append({"role": "assistant", "content": "I understand you're having an issue with your plumbing. Let me help you with that."})
+
+        # Add current message
+        messages.append({"role": "user", "content": message})
+
         response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful plumbing assistant."},
-                {"role": "user", "content": f"What's a quick fix for this plumbing issue: {issue}"}
-            ],
-            max_tokens=150,
+            messages=messages,
+            max_tokens=250,
             temperature=0.7
         )
 
@@ -201,7 +201,7 @@ def handle_sms():
                 response = "Our plumber will be in touch soon. If you'd like some DIY tips while you wait, just reply TIPS."
 
         elif state["stage"] == "chatting":
-            advice = get_gpt_advice(message_body)
+            advice = get_gpt_advice(message_body, state)
             response = f"{advice}\n\nNeed more help? Just ask! Or type STOP to end the conversation."
             if message_body.upper() == "STOP":
                 response = "Thanks for chatting! Our plumber will be in touch soon."
