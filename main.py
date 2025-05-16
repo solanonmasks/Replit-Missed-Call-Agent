@@ -1,3 +1,4 @@
+
 from flask import Flask, request, Response
 from twilio.twiml.voice_response import VoiceResponse
 from twilio.rest import Client
@@ -29,6 +30,9 @@ def handle_sms():
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
 
+    state = customer_states.get(from_number, {})
+    stage = state.get("stage", "waiting_for_name")
+
     # Forward all messages to plumber
     try:
         client.messages.create(
@@ -40,47 +44,44 @@ def handle_sms():
         print(f"Error forwarding to plumber: {str(e)}")
 
     try:
-        if from_number not in customer_states:
-            customer_states[from_number] = {"stage": "waiting_for_name"}
-            response = "Hi this is FloWrite Plumbing. Could you please tell us your name?"
-        else:
-            state = customer_states[from_number]
+        if stage == "waiting_for_name":
+            customer_states[from_number] = {
+                "stage": "waiting_for_issue",
+                "name": message_body
+            }
+            response = "Thanks! Could you briefly describe your plumbing issue?"
 
-            if state["stage"] == "waiting_for_name":
-                state["name"] = message_body
-                state["stage"] = "waiting_for_issue"
-                response = "Thanks! Could you briefly describe your plumbing issue?"
+        elif stage == "waiting_for_issue":
+            customer_states[from_number] = {
+                "stage": "chatting",
+                "name": state["name"],
+                "issue": message_body
+            }
+            
+            # Send detailed message to plumber
+            plumber_message = f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {message_body}"
+            client.messages.create(
+                body=plumber_message,
+                from_=TWILIO_PHONE_NUMBER,
+                to=FORWARD_TO_NUMBER
+            )
 
-            elif state["stage"] == "waiting_for_issue":
-                state["issue"] = message_body
-                state["stage"] = "chatting"
+            # Send confirmation to customer
+            response = (
+                f"Thanks {state['name']}, we've received your request and the plumber will contact you as soon as possible.\n\n"
+                "Feel free to ask any questions while you wait!"
+            )
 
-                # Send to plumber
-                plumber_message = f"New plumbing request:\nName: {state['name']}\nPhone: {from_number}\nIssue: {state['issue']}"
-                client.messages.create(
-                    body=plumber_message,
-                    from_=TWILIO_PHONE_NUMBER,
-                    to=FORWARD_TO_NUMBER
-                )
+        elif stage == "chatting":
+            completion = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are FloWrite Plumbing's AI assistant. You specialize in providing helpful, accurate plumbing advice. Focus on common household plumbing issues, maintenance tips, and emergency guidance. Be professional but friendly, and always emphasize safety. If an issue sounds serious, remind them that a professional assessment is recommended."},
+                    {"role": "user", "content": message_body}
+                ]
+            )
+            response = completion.choices[0].message.content
 
-                # Confirm to customer
-                response = (
-                    f"Thanks {state['name']}, we've received your request and the plumber will contact you as soon as possible.\n\n"
-                    "Feel free to ask any questions while you wait!"
-                )
-
-            elif state["stage"] == "chatting":
-                # Use OpenAI for chat responses
-                completion = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are FloWrite Plumbing's AI assistant. Provide helpful plumbing advice while being professional and friendly. Focus on safety and common issues. For serious issues, recommend professional assessment."},
-                        {"role": "user", "content": message_body}
-                    ]
-                )
-                response = completion.choices[0].message.content
-
-        # Send response to customer
         message = client.messages.create(
             body=response,
             from_=TWILIO_PHONE_NUMBER,
@@ -107,13 +108,17 @@ def call_status():
 
     if status in ['no-answer', 'busy', 'failed'] or (status == 'completed' and duration and int(duration) < 10):
         try:
+            # Initialize state first
+            customer_states[caller] = {"stage": "waiting_for_name"}
+            
+            # Then send initial message
             client.messages.create(
                 body="Hi this is FloWrite Plumbing. Could you please tell us your name?",
                 from_=TWILIO_PHONE_NUMBER,
                 to=caller
             )
-            customer_states[caller] = {"stage": "waiting_for_name"}
 
+            # Notify plumber
             client.messages.create(
                 body=f"Missed call from: {caller}",
                 from_=TWILIO_PHONE_NUMBER,
