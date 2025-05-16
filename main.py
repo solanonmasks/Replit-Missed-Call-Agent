@@ -14,6 +14,14 @@ TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
 FORWARD_TO_NUMBER = os.environ.get("FORWARD_TO_NUMBER")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+# Verify credentials
+if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, FORWARD_TO_NUMBER]):
+    print("ERROR: Missing required Twilio credentials!")
+    print(f"ACCOUNT_SID: {'Present' if TWILIO_ACCOUNT_SID else 'Missing'}")
+    print(f"AUTH_TOKEN: {'Present' if TWILIO_AUTH_TOKEN else 'Missing'}")
+    print(f"PHONE_NUMBER: {'Present' if TWILIO_PHONE_NUMBER else 'Missing'}")
+    print(f"FORWARD_NUMBER: {'Present' if FORWARD_TO_NUMBER else 'Missing'}")
+
 openai.api_key = OPENAI_API_KEY
 
 def format_phone_number(number):
@@ -68,6 +76,10 @@ def handle_no_answer():
     
     # Test SMS immediately
     try:
+        print(f"\nAttempting to send test SMS:")
+        print(f"From: {TWILIO_PHONE_NUMBER}")
+        print(f"To: {from_number}")
+        
         test_message = client.messages.create(
             body="Test message from FlowRite Plumbing",
             from_=TWILIO_PHONE_NUMBER,
@@ -75,7 +87,9 @@ def handle_no_answer():
         )
         print(f"Test SMS sent with SID: {test_message.sid}")
     except Exception as e:
-        print(f"Test SMS failed: {str(e)}")
+        print(f"Test SMS failed with error: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        return str(VoiceResponse())  # Return empty response on error
     if dial_status in ["no-answer", "busy", "failed"]:
         print(f"Call not answered. Status: {dial_status}")
         print(f"Customer number: {from_number}")
