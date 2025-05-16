@@ -84,19 +84,21 @@ def handle_call_result():
 
         if TWILIO_PHONE_NUMBER and from_number:
             try:
+                message_body = None
                 if call_status == "completed" and recording_url:
-                    message = client.messages.create(
-                        body="Thanks for leaving a voicemail! We'll get back to you as soon as possible.",
-                        from_=TWILIO_PHONE_NUMBER,
-                        to=from_number
-                    )
+                    message_body = "Thanks for leaving a voicemail! We'll get back to you as soon as possible."
                 elif call_status in ["no-answer", "busy", "failed"]:
+                    message_body = "Hey! Sorry we missed your call. What can we help you with?"
+                elif call_status == "completed":
+                    message_body = "Thanks for calling! We'll be happy to help you again."
+                
+                if message_body:
                     message = client.messages.create(
-                        body="Hey! Sorry we missed your call. What can we help you with?",
+                        body=message_body,
                         from_=TWILIO_PHONE_NUMBER,
                         to=from_number
                     )
-                print(f"SMS sent successfully: {message.sid}")
+                    print(f"SMS sent successfully: {message.sid}")
             except Exception as sms_error:
                 print(f"SMS sending failed: {str(sms_error)}")
         return Response("", status=200)
