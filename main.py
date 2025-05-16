@@ -300,16 +300,66 @@ def handle_sms():
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=81)
 
+import functools
+from flask import redirect, url_for, session, request, flash
+
+def admin_required(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        password = request.form.get("password")
+        if password == os.environ.get("ADMIN_PASSWORD", "admin123"):  # Default for testing
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        return "Invalid password"
+    
+    return """
+        <form method="post">
+            <h2>Admin Login</h2>
+            <input type="password" name="password" placeholder="Enter admin password">
+            <button type="submit">Login</button>
+        </form>
+    """
+
 @app.route("/admin", methods=["GET"])
+@admin_required
 def admin_dashboard():
     stats = {number: {
         "business": config["business_name"],
         "active_chats": len([k for k,v in customer_states.items() 
                            if v.get("plumber_number") == number]),
-        "forward_to": config["forward_to"]
+        "forward_to": config["forward_to"],
+        "total_conversations": len(customer_states),
+        "active_conversations": len([k for k,v in customer_states.items() 
+                                   if v.get("stage") == "chatting"])
     } for number, config in PLUMBER_CONFIG.items()}
     
     return f"""
     <h1>Plumber Management Dashboard</h1>
-    <pre>{json.dumps(stats, indent=2)}</pre>
+    <style>
+        .stats {{ padding: 20px; background: #f5f5f5; border-radius: 5px; }}
+        .actions {{ margin-top: 20px; }}
+        button {{ padding: 10px; margin: 5px; }}
+    </style>
+    <div class="stats">
+        <pre>{json.dumps(stats, indent=2)}</pre>
+    </div>
+    <div class="actions">
+        <form action="/admin/add_plumber" method="post" style="margin-top: 20px;">
+            <h3>Add New Plumber</h3>
+            <input type="text" name="business_name" placeholder="Business Name" required><br>
+            <input type="text" name="twilio_number" placeholder="Twilio Number" required><br>
+            <input type="text" name="forward_to" placeholder="Forward Number" required><br>
+            <button type="submit">Add Plumber</button>
+        </form>
+    </div>
     """
+
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key")  # Default for testing
