@@ -9,5 +9,5 @@ class Config:
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'default-secret-key')
     DEBUG = False
-    PORT = 5000 
+    PORT = 81
     HOST = '0.0.0.0'
