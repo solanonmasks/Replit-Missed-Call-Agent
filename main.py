@@ -1,4 +1,3 @@
-
 from flask import Flask, request, Response
 from twilio.twiml.voice_response import VoiceResponse
 from twilio.rest import Client
@@ -46,7 +45,22 @@ def test_sms():
 def handle_sms():
     from_number = request.form.get("From")
     message_body = request.form.get("Body", "").strip()
-    
+    print(f"Received message from {from_number}: {message_body}")
+
+    # Forward every message to plumber first
+    try:
+        client.messages.create(
+            body=f"Message from {from_number}:\n{message_body}",
+            from_=TWILIO_PHONE_NUMBER,
+            to=FORWARD_TO_NUMBER
+        )
+    except Exception as e:
+        print(f"Error forwarding to plumber: {str(e)}")
+
+    # Debug OpenAI key
+    print(f"OpenAI key exists: {bool(openai.api_key)}")
+
+    # Then handle customer conversation
     if from_number not in customer_states:
         customer_states[from_number] = {"stage": "waiting_for_name"}
         response = "Hi! Thanks for contacting us. What's your name?"
