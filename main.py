@@ -151,6 +151,15 @@ customer_states = {}  # Store customer interaction states
 def home():
     return "Server is live!"
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "version": "1.0.0",
+        "twilio_connected": bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN),
+        "openai_connected": bool(OPENAI_API_KEY)
+    })
+
 @app.route("/handle-call", methods=["POST"])
 def handle_call():
     response = VoiceResponse()
@@ -376,4 +385,6 @@ def admin_dashboard():
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key")  # Default for testing
 
 if __name__ == "__main__":
+    from utils.logging_config import setup_logging
+    setup_logging()
     app.run(host='0.0.0.0', port=81)
