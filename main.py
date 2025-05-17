@@ -405,22 +405,40 @@ def admin_dashboard():
     } for number, config in BUSINESS_CONFIG.items()}
 
     return f"""
-    <h1>Plumber Management Dashboard</h1>
+    <h1>Business Management Dashboard</h1>
     <style>
-        .stats {{ padding: 20px; background: #f5f5f5; border-radius: 5px; }}
+        .stats {{ padding: 20px; background: #f5f5f5; border-radius: 5px; margin-bottom: 20px; }}
         .actions {{ margin-top: 20px; }}
-        button {{ padding: 10px; margin: 5px; }}
+        .form-group {{ margin: 10px 0; }}
+        input {{ padding: 8px; margin: 5px 0; width: 300px; }}
+        button {{ padding: 10px; margin: 5px; background: #4CAF50; color: white; border: none; cursor: pointer; }}
+        select {{ padding: 8px; margin: 5px 0; width: 300px; }}
     </style>
     <div class="stats">
+        <h2>Current Businesses</h2>
         <pre>{json.dumps(stats, indent=2)}</pre>
     </div>
     <div class="actions">
-        <form action="/admin/add_plumber" method="post" style="margin-top: 20px;">
-            <h3>Add New Plumber</h3>
-            <input type="text" name="business_name" placeholder="Business Name" required><br>
-            <input type="text" name="twilio_number" placeholder="Twilio Number" required><br>
-            <input type="text" name="forward_to" placeholder="Forward Number" required><br>
-            <button type="submit">Add Plumber</button>
+        <form action="/admin/add_business" method="post" style="margin-top: 20px;">
+            <h3>Add New Business</h3>
+            <div class="form-group">
+                <input type="text" name="business_name" placeholder="Business Name" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="twilio_number" placeholder="Twilio Number (format: +1XXXXXXXXXX)" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="forward_to" placeholder="Forward to Number (format: +1XXXXXXXXXX)" required>
+            </div>
+            <div class="form-group">
+                <select name="business_type" required>
+                    <option value="plumber">Plumber</option>
+                    <option value="electrician">Electrician</option>
+                    <option value="handyman">Handyman</option>
+                    <option value="hvac">HVAC</option>
+                </select>
+            </div>
+            <button type="submit">Add Business</button>
         </form>
     </div>
     """
