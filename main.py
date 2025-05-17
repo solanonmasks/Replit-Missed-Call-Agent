@@ -7,17 +7,35 @@ import openai
 app = Flask(__name__)
 
 # Multi-business configuration
-BUSINESS_CONFIG = {
-    "+17786535845": {  # Twilio number as key
-        "forward_to": "+16044423722",
-        "business_name": "FlowRite Plumbing",
-        "business_type": "plumber",  # plumber, electrician, handyman, etc.
+BUSINESS_CONFIG = {}
+
+def load_business_config():
+    global BUSINESS_CONFIG
+    # Shared credentials across all businesses
+    shared_creds = {
         "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID"),
         "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN"),
         "openai_key": os.environ.get("OPENAI_API_KEY")
     }
-    # Add more businesses here
-}
+    
+    # Load businesses from admin-configured storage
+    # For now using a simple dictionary - can be replaced with database
+    businesses = {
+        "+17786535845": {
+            "forward_to": "+16044423722",
+            "business_name": "FlowRite Plumbing",
+            "business_type": "plumber",
+        }
+    }
+    
+    # Combine shared credentials with business-specific config
+    BUSINESS_CONFIG = {
+        number: {**config, **shared_creds}
+        for number, config in businesses.items()
+    }
+
+# Load initial configuration
+load_business_config()
 
 # Default credentials for testing
 TWILIO_ACCOUNT_SID = BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]]["twilio_sid"]
@@ -353,6 +371,25 @@ def admin_login():
             <button type="submit">Login</button>
         </form>
     """
+
+@app.route("/admin/add_business", methods=["POST"])
+@admin_required
+def add_business():
+    data = request.form
+    number = data.get('twilio_number')
+    if number:
+        businesses = BUSINESS_CONFIG.copy()
+        businesses[number] = {
+            "forward_to": data.get('forward_to'),
+            "business_name": data.get('business_name'),
+            "business_type": data.get('business_type'),
+            "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID"),
+            "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN"),
+            "openai_key": os.environ.get("OPENAI_API_KEY")
+        }
+        BUSINESS_CONFIG.update(businesses)
+        flash('Business added successfully!')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route("/admin", methods=["GET"])
 @admin_required
