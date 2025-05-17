@@ -1,3 +1,4 @@
+
 [project]
 name = "python-template"
 version = "0.1.0"
@@ -9,4 +10,5 @@ dependencies = [
     "openai>=1.78.1",
     "stripe>=12.1.0",
     "twilio",
+    "gunicorn",
 ]
