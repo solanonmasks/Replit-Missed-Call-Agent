@@ -71,9 +71,14 @@ def get_gpt_advice(message, state=None):
         if not OPENAI_API_KEY:
             raise ValueError("OpenAI API key is missing")
 
+        # Get business type from config
+        to_number = TWILIO_PHONE_NUMBER
+        business_config = BUSINESS_CONFIG.get(to_number, BUSINESS_CONFIG[list(BUSINESS_CONFIG.keys())[0]])
+        business_type = business_config.get('business_type', 'plumber')
+
         # Build conversation history with enhanced context and capabilities
         messages = [
-            {"role": "system", "content": f"""You're a service professional assistant for {business_config['business_type']} with 15 years of experience. Talk like a normal person - no corporate speak, just practical advice from experience. Keep it real and straight to the point.
+            {"role": "system", "content": f"""You're a service professional assistant for {business_type} with 15 years of experience. Talk like a normal person - no corporate speak, just practical advice from experience. Keep it real and straight to the point.
 
             About the customer:
             Name: {state.get('name', 'the customer') if state else 'the customer'}
